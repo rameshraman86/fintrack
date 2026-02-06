@@ -1,0 +1,296 @@
+.page {
+  max-width: 1000px;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.nameField {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.nameLabel {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.nameInput {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+  width: 12rem;
+  max-width: 100%;
+}
+
+.nameInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.nameInput::placeholder {
+  color: var(--text-muted);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.summaryCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.summaryCard:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.summaryLabel {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.summaryValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.summaryPositive .summaryValue {
+  color: var(--success);
+}
+
+.summaryNegative .summaryValue {
+  color: var(--danger);
+}
+
+.categories {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.legend {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.legend strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.categoryGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.categoryCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.categoryCard:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.categoryDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.categoryName {
+  font-weight: 500;
+}
+
+.categoryAmounts {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.categorySeparator {
+  color: var(--text-muted);
+  margin: 0 0.25rem;
+}
+
+.categoryBudget {
+  color: var(--text-muted);
+}
+
+.progressTrack {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.subList {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.subRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.subLabel {
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.subInputs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.subSeparator {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.amountInput {
+  width: 4.25rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.amountInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.amountInput::placeholder {
+  color: var(--text-muted);
+}
+
+.singleCategoryInputs {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.inlineLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.inlineLabel .amountInput {
+  width: 6rem;
+}
+
+.group {
+  margin-top: 1rem;
+}
+
+.groupTitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.notesBlock {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.notesLabel {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.notesInput {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.notesInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.notesInput::placeholder {
+  color: var(--text-muted);
+}
