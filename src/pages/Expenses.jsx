@@ -1,9 +1,11 @@
+import { useState, useCallback } from 'react'
 import {
   BUDGET_CATEGORIES,
   getBudgetKeys,
   EXPENSE_NOTES_CATEGORY_IDS,
 } from '../data/budgetCategories'
 import { useAppData } from '../context/AppData'
+import DecimalInput from '../components/DecimalInput'
 import styles from './Expenses.module.css'
 
 const CATEGORY_COLORS = [
@@ -29,6 +31,61 @@ function getCategoryColor(index) {
   return CATEGORY_COLORS[index % CATEGORY_COLORS.length]
 }
 
+function ChevronIcon({ open }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
+/* ---------- helpers ---------- */
+
+function getCategoryTotals(category, budget, spent, otherSpent) {
+  if (category.items) {
+    const mine = category.items.reduce(
+      (sum, item) => sum + (Number(spent[`${category.id}_${item.id}`]) || 0), 0)
+    const other = category.items.reduce(
+      (sum, item) => sum + (Number(otherSpent[`${category.id}_${item.id}`]) || 0), 0)
+    const bgt = category.items.reduce(
+      (sum, item) => sum + (Number(budget[`${category.id}_${item.id}`]) || 0), 0)
+    return { mine, other, total: mine + other, budget: bgt }
+  }
+  if (category.groups) {
+    let mine = 0, other = 0, bgt = 0
+    for (const group of category.groups) {
+      for (const item of group.items) {
+        const key = `${category.id}_${group.id}_${item.id}`
+        mine += Number(spent[key]) || 0
+        other += Number(otherSpent[key]) || 0
+        bgt += Number(budget[key]) || 0
+      }
+    }
+    return { mine, other, total: mine + other, budget: bgt }
+  }
+  const key = category.id
+  const mine = Number(spent[key]) || 0
+  const other = Number(otherSpent[key]) || 0
+  const bgt = Number(budget[key]) || 0
+  return { mine, other, total: mine + other, budget: bgt }
+}
+
+function fmt(n) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/* ================================================================ */
+
 export default function Expenses() {
   const {
     budget,
@@ -41,6 +98,21 @@ export default function Expenses() {
     setExpenseNote,
     setOtherPersonName,
   } = useAppData()
+
+  const [expanded, setExpanded] = useState({})
+
+  const toggle = useCallback((id) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
+  }, [])
+
+  const allExpanded = BUDGET_CATEGORIES.every((c) => expanded[c.id])
+  const toggleAll = useCallback(() => {
+    if (allExpanded) {
+      setExpanded({})
+    } else {
+      setExpanded(Object.fromEntries(BUDGET_CATEGORIES.map((c) => [c.id, true])))
+    }
+  }, [allExpanded])
 
   const otherLabel = otherPersonName.trim() || 'Them'
   const otherLabelPossessive = otherPersonName.trim() ? `${otherPersonName.trim()}'s` : 'Their'
@@ -55,12 +127,12 @@ export default function Expenses() {
   return (
     <div className={`${styles.page} animate-fade-in`}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Expenses by Category</h1>
+        <h1 className={styles.title}>Expenses</h1>
         <p className={styles.subtitle}>
-          Track your spending and, if sharing expenses, how much the other person spent per category.
+          Track spending per category. Click a row to expand details.
         </p>
         <div className={styles.nameField}>
-          <span className={styles.nameLabel}>Sharing expenses with</span>
+          <span className={styles.nameLabel}>Sharing with</span>
           <input
             type="text"
             className={styles.nameInput}
@@ -72,282 +144,197 @@ export default function Expenses() {
         </div>
       </header>
 
+      {/* ---------- Summary ---------- */}
       <section className={styles.summary}>
         <div className={styles.summaryCard}>
           <span className={styles.summaryLabel}>Your spent</span>
-          <span className={`${styles.summaryValue} mono`}>
-            ${totalSpentMine.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </span>
+          <span className={`${styles.summaryValue} mono`}>${fmt(totalSpentMine)}</span>
         </div>
         <div className={styles.summaryCard}>
           <span className={styles.summaryLabel}>{otherLabelPossessive} spent</span>
-          <span className={`${styles.summaryValue} mono`}>
-            ${totalSpentOther.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </span>
+          <span className={`${styles.summaryValue} mono`}>${fmt(totalSpentOther)}</span>
         </div>
         <div className={styles.summaryCard}>
           <span className={styles.summaryLabel}>Total spent</span>
-          <span className={`${styles.summaryValue} mono`}>
-            ${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </span>
+          <span className={`${styles.summaryValue} mono`}>${fmt(totalSpent)}</span>
         </div>
         <div className={styles.summaryCard}>
-          <span className={styles.summaryLabel}>Total budget</span>
-          <span className={`${styles.summaryValue} mono`}>
-            ${totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </span>
+          <span className={styles.summaryLabel}>Budget</span>
+          <span className={`${styles.summaryValue} mono`}>${fmt(totalBudget)}</span>
         </div>
         <div className={`${styles.summaryCard} ${remaining >= 0 ? styles.summaryPositive : styles.summaryNegative}`}>
           <span className={styles.summaryLabel}>Remaining</span>
-          <span className={`${styles.summaryValue} mono`}>
-            ${remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </span>
+          <span className={`${styles.summaryValue} mono`}>${fmt(remaining)}</span>
         </div>
       </section>
 
+      {/* ---------- Accordion ---------- */}
       <section className={styles.categories}>
-        <h2 className={styles.sectionTitle}>Categories</h2>
-        <p className={styles.legend}>
-          For shared expenses, enter your amount in <strong>You</strong> and the other person’s in <strong>{otherLabel}</strong>. Category totals and progress use both.
-        </p>
-        <div className={styles.categoryGrid}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Categories</h2>
+          <button className={styles.expandAllBtn} onClick={toggleAll} type="button">
+            {allExpanded ? 'Collapse all' : 'Expand all'}
+          </button>
+        </div>
+
+        <div className={styles.accordionList}>
           {BUDGET_CATEGORIES.map((category, catIndex) => {
             const color = getCategoryColor(catIndex)
             const hasNotes = EXPENSE_NOTES_CATEGORY_IDS.includes(category.id)
             const icon = CATEGORY_ICONS[category.id] || '💰'
+            const isOpen = !!expanded[category.id]
+            const totals = getCategoryTotals(category, budget, spent, otherSpent)
+            const balance = totals.budget - totals.total
+            const pct = totals.budget > 0 ? Math.min(100, (totals.total / totals.budget) * 100) : 0
 
-            if (category.items) {
-              const categorySpentMine = category.items.reduce(
-                (sum, item) => sum + (Number(spent[`${category.id}_${item.id}`]) || 0),
-                0
-              )
-              const categorySpentOther = category.items.reduce(
-                (sum, item) => sum + (Number(otherSpent[`${category.id}_${item.id}`]) || 0),
-                0
-              )
-              const categorySpent = categorySpentMine + categorySpentOther
-              const categoryBudget = category.items.reduce(
-                (sum, item) => sum + (Number(budget[`${category.id}_${item.id}`]) || 0),
-                0
-              )
-              const categoryBalance = categoryBudget - categorySpent
-              const pct = categoryBudget > 0 ? Math.min(100, (categorySpent / categoryBudget) * 100) : 0
-              return (
-                <article key={category.id} className={styles.categoryCard}>
-                  <div className={styles.categoryHeader}>
-                    <span className={styles.categoryDot} style={{ background: color, color: color }} aria-hidden />
-                    <span className={styles.categoryName}>{icon} {category.name}</span>
-                  </div>
-                  <div className={styles.categoryAmounts}>
-                    <span className="mono">${categorySpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    <span className={styles.categorySeparator}>/</span>
-                    <span className={`mono ${styles.categoryBudget}`}>
-                      ${categoryBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className={`${styles.categoryBalance} ${categoryBalance >= 0 ? styles.balancePositive : styles.balanceNegative}`}>
-                    Balance: <span className="mono">${categoryBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className={styles.progressTrack}>
-                    <div className={styles.progressFill} style={{ width: `${pct}%`, background: color }} />
-                  </div>
-                  <ul className={styles.subList}>
-                    {category.items.map((item) => {
-                      const key = `${category.id}_${item.id}`
-                      const itemSpent = Number(spent[key]) || 0
-                      const itemOther = Number(otherSpent[key]) || 0
-                      const itemBudget = Number(budget[key]) || 0
-                      return (
-                        <li key={key} className={styles.subRow}>
-                          <span className={styles.subLabel}>{item.name}</span>
-                          <span className={styles.subInputs}>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="You"
-                              className={styles.amountInput}
-                              value={itemSpent || ''}
-                              onChange={(e) => setSpentAmount(key, parseFloat(e.target.value) || 0)}
-                            />
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder={otherLabel}
-                              className={styles.amountInput}
-                              value={itemOther || ''}
-                              onChange={(e) => setOtherSpentAmount(key, parseFloat(e.target.value) || 0)}
-                            />
-                            <span className={styles.subSeparator}>/</span>
-                            <span className={styles.budgetReadOnly} title="Set on Monthly budget page">
-                              ${(itemBudget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                            </span>
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </article>
-              )
-            }
+            return (
+              <div key={category.id} className={`${styles.accordion} ${isOpen ? styles.accordionOpen : ''}`}>
+                {/* --- Header row --- */}
+                <button
+                  className={styles.accordionHeader}
+                  onClick={() => toggle(category.id)}
+                  type="button"
+                  aria-expanded={isOpen}
+                >
+                  <span className={styles.accordionDot} style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+                  <span className={styles.accordionIcon}>{icon}</span>
+                  <span className={styles.accordionName}>{category.name}</span>
 
-            if (category.groups) {
-              const categorySpent = category.groups.reduce(
-                (sum, group) =>
-                  sum + group.items.reduce(
-                    (s, item) =>
-                      s +
-                      (Number(spent[`${category.id}_${group.id}_${item.id}`]) || 0) +
-                      (Number(otherSpent[`${category.id}_${group.id}_${item.id}`]) || 0),
-                    0
-                  ),
-                0
-              )
-              const categoryBudget = category.groups.reduce(
-                (sum, group) =>
-                  sum + group.items.reduce((s, item) => s + (Number(budget[`${category.id}_${group.id}_${item.id}`]) || 0), 0),
-                0
-              )
-              const categoryBalance = categoryBudget - categorySpent
-              const pct = categoryBudget > 0 ? Math.min(100, (categorySpent / categoryBudget) * 100) : 0
-              return (
-                <article key={category.id} className={styles.categoryCard}>
-                  <div className={styles.categoryHeader}>
-                    <span className={styles.categoryDot} style={{ background: color, color: color }} aria-hidden />
-                    <span className={styles.categoryName}>{icon} {category.name}</span>
-                  </div>
-                  <div className={styles.categoryAmounts}>
-                    <span className="mono">${categorySpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                    <span className={styles.categorySeparator}>/</span>
-                    <span className={`mono ${styles.categoryBudget}`}>
-                      ${categoryBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  <span className={styles.accordionMeta}>
+                    <span className={`${styles.accordionAmounts} mono`}>
+                      ${fmt(totals.total)}
+                      <span className={styles.accordionSep}>/</span>
+                      <span className={styles.accordionBudgetAmt}>${fmt(totals.budget)}</span>
                     </span>
-                  </div>
-                  <div className={`${styles.categoryBalance} ${categoryBalance >= 0 ? styles.balancePositive : styles.balanceNegative}`}>
-                    Balance: <span className="mono">${categoryBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className={styles.progressTrack}>
-                    <div className={styles.progressFill} style={{ width: `${pct}%`, background: color }} />
-                  </div>
-                  {category.groups.map((group) => (
-                    <div key={group.id} className={styles.group}>
-                      <div className={styles.groupTitle}>{group.name}</div>
+                    <span className={`${styles.accordionBadge} ${balance >= 0 ? styles.badgePositive : styles.badgeNegative}`}>
+                      ${fmt(balance)}
+                    </span>
+                    <span className={styles.accordionProgress}>
+                      <span className={styles.accordionProgressFill} style={{ width: `${pct}%`, background: color }} />
+                    </span>
+                    <ChevronIcon open={isOpen} />
+                  </span>
+                </button>
+
+                {/* --- Expanded body --- */}
+                {isOpen && (
+                  <div className={styles.accordionBody}>
+                    {/* Categories with items (House, Car) */}
+                    {category.items && (
                       <ul className={styles.subList}>
-                        {group.items.map((item) => {
-                          const key = `${category.id}_${group.id}_${item.id}`
-                          const itemSpent = Number(spent[key]) || 0
-                          const itemOther = Number(otherSpent[key]) || 0
+                        {category.items.map((item) => {
+                          const key = `${category.id}_${item.id}`
                           const itemBudget = Number(budget[key]) || 0
                           return (
                             <li key={key} className={styles.subRow}>
                               <span className={styles.subLabel}>{item.name}</span>
                               <span className={styles.subInputs}>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
+                                <DecimalInput
                                   placeholder="You"
                                   className={styles.amountInput}
-                                  value={itemSpent || ''}
-                                  onChange={(e) => setSpentAmount(key, parseFloat(e.target.value) || 0)}
+                                  value={Number(spent[key]) || 0}
+                                  onChange={(v) => setSpentAmount(key, v)}
                                 />
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
+                                <DecimalInput
                                   placeholder={otherLabel}
                                   className={styles.amountInput}
-                                  value={itemOther || ''}
-                                  onChange={(e) => setOtherSpentAmount(key, parseFloat(e.target.value) || 0)}
+                                  value={Number(otherSpent[key]) || 0}
+                                  onChange={(v) => setOtherSpentAmount(key, v)}
                                 />
-                                <span className={styles.subSeparator}>/</span>
-                                <span className={styles.budgetReadOnly} title="Set on Monthly budget page">
-                                  ${(itemBudget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                <span className={styles.subSep}>/</span>
+                                <span className={styles.budgetReadOnly} title="Set on Budget page">
+                                  ${fmt(itemBudget)}
                                 </span>
                               </span>
                             </li>
                           )
                         })}
                       </ul>
-                    </div>
-                  ))}
-                </article>
-              )
-            }
+                    )}
 
-            const key = category.id
-            const categorySpentMine = Number(spent[key]) || 0
-            const categorySpentOther = Number(otherSpent[key]) || 0
-            const categorySpent = categorySpentMine + categorySpentOther
-            const categoryBudget = Number(budget[key]) || 0
-            const categoryBalance = categoryBudget - categorySpent
-            const pct = categoryBudget > 0 ? Math.min(100, (categorySpent / categoryBudget) * 100) : 0
-            return (
-              <article key={category.id} className={styles.categoryCard}>
-                <div className={styles.categoryHeader}>
-                  <span className={styles.categoryDot} style={{ background: color, color: color }} aria-hidden />
-                  <span className={styles.categoryName}>{icon} {category.name}</span>
-                </div>
-                <div className={styles.categoryAmounts}>
-                  <span className="mono">${categorySpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                  <span className={styles.categorySeparator}>/</span>
-                  <span className={`mono ${styles.categoryBudget}`}>
-                    ${categoryBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className={`${styles.categoryBalance} ${categoryBalance >= 0 ? styles.balancePositive : styles.balanceNegative}`}>
-                  Balance: <span className="mono">${categoryBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className={styles.progressTrack}>
-                  <div className={styles.progressFill} style={{ width: `${pct}%`, background: color }} />
-                </div>
-                <div className={styles.singleCategoryInputs}>
-                  <label className={styles.inlineLabel}>
-                    You
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className={styles.amountInput}
-                      value={categorySpentMine || ''}
-                      onChange={(e) => setSpentAmount(key, parseFloat(e.target.value) || 0)}
-                    />
-                  </label>
-                  <label className={styles.inlineLabel}>
-                    {otherLabel}
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className={styles.amountInput}
-                      value={categorySpentOther || ''}
-                      onChange={(e) => setOtherSpentAmount(key, parseFloat(e.target.value) || 0)}
-                    />
-                  </label>
-                  <label className={styles.inlineLabel}>
-                    Budget
-                    <span className={styles.budgetReadOnly} title="Set on Monthly budget page">
-                      ${(categoryBudget || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                  </label>
-                </div>
-                {hasNotes && (
-                  <div className={styles.notesBlock}>
-                    <label htmlFor={`notes-${category.id}`} className={styles.notesLabel}>
-                      Notes (e.g. what you spent on)
-                    </label>
-                    <textarea
-                      id={`notes-${category.id}`}
-                      className={styles.notesInput}
-                      value={notes[category.id] ?? ''}
-                      onChange={(e) => setExpenseNote(category.id, e.target.value)}
-                      placeholder="e.g. gym (56.49), gdrive (13.2), utube (146.89/12)..."
-                      rows={4}
-                    />
+                    {/* Categories with groups (Travelling) */}
+                    {category.groups && category.groups.map((group) => (
+                      <div key={group.id} className={styles.group}>
+                        <div className={styles.groupTitle}>{group.name}</div>
+                        <ul className={styles.subList}>
+                          {group.items.map((item) => {
+                            const key = `${category.id}_${group.id}_${item.id}`
+                            const itemBudget = Number(budget[key]) || 0
+                            return (
+                              <li key={key} className={styles.subRow}>
+                                <span className={styles.subLabel}>{item.name}</span>
+                                <span className={styles.subInputs}>
+                                  <DecimalInput
+                                    placeholder="You"
+                                    className={styles.amountInput}
+                                    value={Number(spent[key]) || 0}
+                                    onChange={(v) => setSpentAmount(key, v)}
+                                  />
+                                  <DecimalInput
+                                    placeholder={otherLabel}
+                                    className={styles.amountInput}
+                                    value={Number(otherSpent[key]) || 0}
+                                    onChange={(v) => setOtherSpentAmount(key, v)}
+                                  />
+                                  <span className={styles.subSep}>/</span>
+                                  <span className={styles.budgetReadOnly} title="Set on Budget page">
+                                    ${fmt(itemBudget)}
+                                  </span>
+                                </span>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+
+                    {/* Simple categories — inline inputs */}
+                    {!category.items && !category.groups && (
+                      <div className={styles.simpleInputs}>
+                        <label className={styles.inlineLabel}>
+                          You
+                          <DecimalInput
+                            className={styles.amountInput}
+                            value={totals.mine}
+                            onChange={(v) => setSpentAmount(category.id, v)}
+                          />
+                        </label>
+                        <label className={styles.inlineLabel}>
+                          {otherLabel}
+                          <DecimalInput
+                            className={styles.amountInput}
+                            value={totals.other}
+                            onChange={(v) => setOtherSpentAmount(category.id, v)}
+                          />
+                        </label>
+                        <label className={styles.inlineLabel}>
+                          Budget
+                          <span className={styles.budgetReadOnly} title="Set on Budget page">
+                            ${fmt(totals.budget)}
+                          </span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {hasNotes && (
+                      <div className={styles.notesBlock}>
+                        <label htmlFor={`notes-${category.id}`} className={styles.notesLabel}>
+                          Notes
+                        </label>
+                        <textarea
+                          id={`notes-${category.id}`}
+                          className={styles.notesInput}
+                          value={notes[category.id] ?? ''}
+                          onChange={(e) => setExpenseNote(category.id, e.target.value)}
+                          placeholder="e.g. gym (56.49), gdrive (13.2)..."
+                          rows={3}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
-              </article>
+              </div>
             )
           })}
         </div>

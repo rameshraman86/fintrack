@@ -1,110 +1,143 @@
+/* ==============================
+   Wealth Page – Vibrant Gradient
+   ============================== */
+
 .page {
-  max-width: 1000px;
-  animation: fadeIn 0.5s ease-out;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
+/* --- Header --- */
 .header {
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .title {
-  margin: 0 0 0.75rem;
-  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
-  background: linear-gradient(to bottom right, var(--text), var(--text-muted));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
 .subtitle {
   margin: 0;
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
+/* --- Net worth hero --- */
 .netWorth {
-  margin-bottom: 4rem;
+  margin-bottom: 3rem;
 }
 
 .netWorthCard {
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-app));
-  border: 1px solid var(--border);
+  background: var(--accent-gradient);
   border-radius: var(--radius-lg);
-  padding: 3rem;
+  padding: 2.5rem;
   text-align: center;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-accent);
   position: relative;
   overflow: hidden;
+  color: #fff;
+}
+
+.netWorthCard::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
 }
 
 .netWorthCard::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(to right, var(--accent), var(--success));
+  bottom: -40px;
+  left: -40px;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 50%;
 }
 
 .netWorthLabel {
   display: block;
-  font-size: 0.9rem;
-  color: var(--text-muted);
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  font-weight: 700;
-  margin-bottom: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  opacity: 0.85;
 }
 
 .netWorthValue {
-  font-size: 4rem;
+  font-size: 3.5rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text);
+  letter-spacing: -0.03em;
+  position: relative;
+  z-index: 1;
 }
 
-.netWorthValue.positive {
-  color: var(--success);
-  text-shadow: 0 0 20px var(--success-soft);
-}
-
+.netWorthValue.positive,
 .netWorthValue.negative {
-  color: var(--danger);
-  text-shadow: 0 0 20px var(--danger-soft);
+  /* both stay white on the gradient card */
+  color: #fff;
 }
 
+/* --- Breakdown --- */
 .breakdown {
-  margin-bottom: 4rem;
+  margin-bottom: 3rem;
 }
 
 .breakdownGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
 }
 
 .breakdownCard {
   background: var(--bg-card);
-  border: 1px solid var(--border-muted);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 2rem;
+  padding: 1.75rem;
   transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.breakdownCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-gradient-vivid);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .breakdownCard:hover {
-  border-color: var(--border);
-  transform: translateY(-4px);
-  box-shadow: var(--shadow);
+  border-color: var(--accent-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.breakdownCard:hover::before {
+  opacity: 1;
 }
 
 .breakdownTitle {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin: 0 0 1.5rem;
-  font-size: 1.1rem;
+  gap: 0.625rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -119,13 +152,13 @@
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .breakdownAmount {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 800;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   color: var(--text);
 }
 
@@ -137,55 +170,56 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--border-muted);
-  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+  padding-top: 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .itemRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
-  font-size: 1rem;
-  color: var(--text);
+  padding: 0.625rem 0;
+  font-size: 0.925rem;
+  color: var(--text-secondary);
 }
 
 .itemRow:not(:last-child) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-muted);
 }
 
+/* --- Formula --- */
 .formula {
-  margin-bottom: 4rem;
+  margin-bottom: 3rem;
 }
 
 .formulaCard {
   background: var(--bg-card);
-  border: 1px solid var(--border-muted);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 2rem;
+  padding: 1.75rem;
 }
 
 .formulaLabel {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0.875rem;
 }
 
 .formulaText {
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .formulaResult {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   color: var(--text);
   font-weight: 600;
 }
@@ -198,8 +232,12 @@
   color: var(--danger);
 }
 
+/* --- Responsive --- */
 @media (max-width: 768px) {
   .netWorthValue {
-    font-size: 3rem;
+    font-size: 2.5rem;
+  }
+  .breakdownGrid {
+    grid-template-columns: 1fr;
   }
 }

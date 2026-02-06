@@ -1,60 +1,66 @@
+/* ==============================
+   Expenses Page – Accordion Layout
+   ============================== */
+
 .page {
-  max-width: 1200px;
-  animation: fadeIn 0.5s ease-out;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
+/* --- Header --- */
 .header {
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .title {
-  margin: 0 0 0.75rem;
-  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
-  background: linear-gradient(to bottom right, var(--text), var(--text-muted));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
 .subtitle {
-  margin: 0 0 1.5rem;
+  margin: 0 0 1.25rem;
   color: var(--text-muted);
-  font-size: 1.1rem;
-  max-width: 600px;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
+/* --- Name field --- */
 .nameField {
   display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.25rem;
+  gap: 0.875rem;
+  padding: 0.5rem 1rem;
   background: var(--bg-card);
-  border: 1px solid var(--border-muted);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   transition: var(--transition);
 }
 
 .nameField:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .nameLabel {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .nameInput {
   padding: 0.25rem 0.5rem;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
   color: var(--text);
-  font-size: 0.95rem;
-  width: 12rem;
+  font-size: 0.9rem;
+  width: 11rem;
   font-weight: 600;
+  transition: var(--transition);
 }
 
 .nameInput:focus {
@@ -62,32 +68,51 @@
   border-color: var(--accent);
 }
 
+/* --- Summary cards --- */
 .summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 4rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 2.5rem;
 }
 
 .summaryCard {
   background: var(--bg-card);
-  border: 1px solid var(--border-muted);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.75rem;
-  transition: var(--transition);
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.summaryCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-gradient-vivid);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .summaryCard:hover {
-  border-color: var(--border);
-  transform: translateY(-4px);
-  box-shadow: var(--shadow);
+  border-color: var(--accent-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.summaryCard:hover::before {
+  opacity: 1;
 }
 
 .summaryLabel {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -95,7 +120,7 @@
 }
 
 .summaryValue {
-  font-size: 1.75rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: var(--text);
 }
@@ -104,212 +129,310 @@
   color: var(--success);
 }
 
+.summaryPositive::before {
+  background: var(--success-gradient) !important;
+  opacity: 1;
+}
+
 .summaryNegative .summaryValue {
   color: var(--danger);
 }
 
+.summaryNegative::before {
+  background: var(--danger-gradient) !important;
+  opacity: 1;
+}
+
+/* --- Section header --- */
 .categories {
-  margin-bottom: 4rem;
+  margin-bottom: 3rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
 .sectionTitle {
-  margin: 0 0 0.5rem;
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: 1.2rem;
   font-weight: 800;
   color: var(--text);
 }
 
-.legend {
-  margin: 0 0 2rem;
-  font-size: 0.95rem;
-  color: var(--text-muted);
-}
-
-.legend strong {
-  color: var(--text);
-}
-
-.categoryGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 2rem;
-}
-
-.categoryCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-muted);
-  border-radius: var(--radius);
-  padding: 2rem;
+.expandAllBtn {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--accent-soft);
+  background: var(--accent-soft);
+  cursor: pointer;
   transition: var(--transition);
+}
+
+.expandAllBtn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-accent);
+}
+
+/* ==============================
+   Accordion
+   ============================== */
+
+.accordionList {
   display: flex;
   flex-direction: column;
-}
-
-.categoryCard:hover {
-  border-color: var(--border);
-  background: var(--bg-card-hover);
-  box-shadow: var(--shadow-sm);
-}
-
-.categoryHeader {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.categoryDot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  box-shadow: 0 0 10px currentColor;
-}
-
-.categoryName {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.categoryAmounts {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: baseline;
   gap: 0.5rem;
 }
 
-.categoryBalance {
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  display: inline-block;
-  width: fit-content;
+.accordion {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: var(--transition);
+  overflow: hidden;
 }
 
-.balancePositive {
+.accordion:hover {
+  border-color: var(--accent-light);
+}
+
+.accordionOpen {
+  box-shadow: var(--shadow-sm);
+}
+
+/* --- Header row (always visible) --- */
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.accordionHeader:hover {
+  background: var(--bg-card-hover);
+}
+
+.accordionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.accordionIcon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.accordionName {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accordionMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.accordionAmounts {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.accordionSep {
+  color: var(--text-dim);
+  margin: 0 0.15rem;
+  font-size: 0.75rem;
+}
+
+.accordionBudgetAmt {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.accordionBadge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.badgePositive {
   background: var(--success-soft);
   color: var(--success);
 }
 
-.balanceNegative {
+.badgeNegative {
   background: var(--danger-soft);
   color: var(--danger);
 }
 
-.categorySeparator {
-  color: var(--text-dim);
-  font-size: 1rem;
-}
-
-.categoryBudget {
-  color: var(--text-muted);
-  font-size: 1.1rem;
-}
-
-.progressTrack {
-  height: 8px;
-  background: var(--border-muted);
-  border-radius: 4px;
+.accordionProgress {
+  width: 48px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
   overflow: hidden;
-  margin-bottom: 2rem;
+  flex-shrink: 0;
 }
 
-.progressFill {
+.accordionProgressFill {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 2px;
+  transition: width 0.5s ease;
 }
 
+.chevron {
+  color: var(--text-dim);
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* --- Expanded body --- */
+.accordionBody {
+  padding: 0.5rem 1.25rem 1.25rem;
+  border-top: 1px dashed var(--border);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Sub items --- */
 .subList {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
 .subRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 1rem;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-muted);
 }
 
 .subRow:last-child {
   border-bottom: none;
-  padding-bottom: 0;
 }
 
 .subLabel {
-  font-size: 0.95rem;
-  color: var(--text);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
   font-weight: 500;
   flex: 1;
+  min-width: 0;
 }
 
 .subInputs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  flex-shrink: 0;
 }
 
-.subSeparator {
+.subSep {
   color: var(--text-dim);
   font-weight: 700;
+  font-size: 0.8rem;
 }
 
 .amountInput {
-  width: 4.5rem;
-  padding: 0.4rem 0.6rem;
-  background: var(--bg-app);
-  border: 1px solid var(--border-muted);
-  border-radius: var(--radius-sm);
+  width: 4.25rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-align: right;
+  transition: var(--transition);
 }
 
 .amountInput:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
   background: var(--bg-card);
+}
+
+/* hide spinners (fallback if type=number is used) */
+.amountInput::-webkit-inner-spin-button,
+.amountInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .budgetReadOnly {
   display: inline-block;
-  min-width: 4.5rem;
-  padding: 0.4rem 0.6rem;
+  min-width: 4.25rem;
+  padding: 0.35rem 0.5rem;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   text-align: right;
   font-weight: 600;
 }
 
-.singleCategoryInputs {
+/* --- Simple category inputs (Groceries, etc.) --- */
+.simpleInputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
 }
 
 .inlineLabel {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  font-size: 0.75rem;
+  gap: 0.25rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   font-weight: 700;
 }
 
@@ -317,64 +440,90 @@
 .inlineLabel .budgetReadOnly {
   width: 100%;
   text-align: left;
-  font-size: 1rem;
-  padding: 0.6rem 0.875rem;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.625rem;
 }
 
+/* --- Groups (Travelling) --- */
 .group {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 2px solid var(--border-muted);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.group:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .groupTitle {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   font-weight: 800;
-  margin-bottom: 1rem;
+  margin-bottom: 0.375rem;
 }
 
+/* --- Notes --- */
 .notesBlock {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-muted);
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px dashed var(--border);
 }
 
 .notesLabel {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   font-weight: 700;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.375rem;
 }
 
 .notesInput {
   width: 100%;
-  padding: 1rem;
-  background: var(--bg-app);
-  border: 1px solid var(--border-muted);
+  padding: 0.625rem;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-family: inherit;
   resize: vertical;
-  min-height: 6rem;
+  min-height: 4rem;
   line-height: 1.5;
+  transition: var(--transition);
 }
 
 .notesInput:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
   background: var(--bg-card);
-  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-@media (max-width: 768px) {
-  .categoryGrid {
-    grid-template-columns: 1fr;
+/* --- Responsive --- */
+@media (max-width: 640px) {
+  .accordionMeta {
+    gap: 0.5rem;
+  }
+
+  .accordionAmounts {
+    font-size: 0.75rem;
+  }
+
+  .accordionProgress {
+    display: none;
+  }
+
+  .simpleInputs {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .subInputs {
+    flex-wrap: wrap;
   }
 }
