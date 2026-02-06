@@ -1,8 +1,6 @@
-import { useState, useCallback } from 'react'
-import {
-  BUDGET_CATEGORIES,
-  getInitialBudgetState,
-} from '../data/budgetCategories'
+import { useState } from 'react'
+import { BUDGET_CATEGORIES } from '../data/budgetCategories'
+import { useAppData } from '../context/AppData'
 import styles from './Budget.module.css'
 
 function formatAmount(value) {
@@ -37,17 +35,27 @@ function BudgetInput({ value, onChange, id, placeholder = '0.00' }) {
   )
 }
 
+const CATEGORY_ICONS = {
+  house: '🏠',
+  car: '🚗',
+  subscriptions: '📺',
+  groceries: '🛒',
+  internet: '🌐',
+  'going-out': '🍻',
+  'personal-expenses': '👤',
+  'phone-bill': '📱',
+  'common-shopping': '🛍️',
+  travelling: '✈️',
+  miscellaneous: '📦',
+}
+
 export default function Budget() {
-  const [amounts, setAmounts] = useState(() => getInitialBudgetState(BUDGET_CATEGORIES))
+  const { budget, setBudget } = useAppData()
 
-  const setAmount = useCallback((key, value) => {
-    setAmounts((prev) => ({ ...prev, [key]: value }))
-  }, [])
-
-  const totalMonthly = Object.values(amounts).reduce((sum, v) => sum + (Number(v) || 0), 0)
+  const totalMonthly = Object.values(budget).reduce((sum, v) => sum + (Number(v) || 0), 0)
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} animate-fade-in`}>
       <header className={styles.header}>
         <h1 className={styles.title}>Monthly budget</h1>
         <p className={styles.subtitle}>
@@ -66,10 +74,13 @@ export default function Budget() {
 
       <section className={styles.categories}>
         {BUDGET_CATEGORIES.map((category) => {
+          const icon = CATEGORY_ICONS[category.id] || '💰'
           if (category.items) {
             return (
               <div key={category.id} className={styles.categoryBlock}>
-                <h2 className={styles.categoryTitle}>{category.name}</h2>
+                <h2 className={styles.categoryTitle}>
+                  <span>{icon}</span> {category.name}
+                </h2>
                 <ul className={styles.itemList}>
                   {category.items.map((item) => {
                     const key = `${category.id}_${item.id}`
@@ -80,8 +91,8 @@ export default function Budget() {
                         </label>
                         <BudgetInput
                           id={`budget-${key}`}
-                          value={amounts[key] ?? 0}
-                          onChange={(v) => setAmount(key, v)}
+                          value={Number(budget[key]) || 0}
+                          onChange={(v) => setBudget(key, v)}
                         />
                       </li>
                     )
@@ -93,7 +104,9 @@ export default function Budget() {
           if (category.groups) {
             return (
               <div key={category.id} className={styles.categoryBlock}>
-                <h2 className={styles.categoryTitle}>{category.name}</h2>
+                <h2 className={styles.categoryTitle}>
+                  <span>{icon}</span> {category.name}
+                </h2>
                 {category.groups.map((group) => (
                   <div key={group.id} className={styles.group}>
                     <h3 className={styles.groupTitle}>{group.name}</h3>
@@ -107,8 +120,8 @@ export default function Budget() {
                             </label>
                             <BudgetInput
                               id={`budget-${key}`}
-                              value={amounts[key] ?? 0}
-                              onChange={(v) => setAmount(key, v)}
+                              value={Number(budget[key]) || 0}
+                              onChange={(v) => setBudget(key, v)}
                             />
                           </li>
                         )
@@ -123,12 +136,12 @@ export default function Budget() {
             <div key={category.id} className={styles.categoryBlock}>
               <div className={styles.singleRow}>
                 <label htmlFor={`budget-${category.id}`} className={styles.categoryTitleInline}>
-                  {category.name}
+                  <span>{icon}</span> {category.name}
                 </label>
                 <BudgetInput
                   id={`budget-${category.id}`}
-                  value={amounts[category.id] ?? 0}
-                  onChange={(v) => setAmount(category.id, v)}
+                  value={Number(budget[category.id]) || 0}
+                  onChange={(v) => setBudget(category.id, v)}
                 />
               </div>
             </div>

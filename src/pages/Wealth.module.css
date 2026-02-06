@@ -1,106 +1,132 @@
 .page {
   max-width: 1000px;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .header {
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
 }
 
 .title {
-  margin: 0 0 0.5rem;
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(to bottom right, var(--text), var(--text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 1.1rem;
 }
 
 .netWorth {
-  margin-bottom: 2.5rem;
+  margin-bottom: 4rem;
 }
 
 .netWorthCard {
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-hover) 100%);
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-app));
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2rem;
+  border-radius: var(--radius-lg);
+  padding: 3rem;
   text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.netWorthCard::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, var(--accent), var(--success));
 }
 
 .netWorthLabel {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
 
 .netWorthValue {
-  font-size: 2.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
 }
 
 .netWorthValue.positive {
   color: var(--success);
+  text-shadow: 0 0 20px var(--success-soft);
 }
 
 .netWorthValue.negative {
   color: var(--danger);
+  text-shadow: 0 0 20px var(--danger-soft);
 }
 
 .breakdown {
-  margin-bottom: 2rem;
+  margin-bottom: 4rem;
 }
 
 .breakdownGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
 }
 
 .breakdownCard {
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-muted);
   border-radius: var(--radius);
-  padding: 1.5rem;
-  transition: background 0.15s, border-color 0.15s;
+  padding: 2rem;
+  transition: var(--transition);
 }
 
 .breakdownCard:hover {
-  background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
 }
 
 .breakdownTitle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .breakdownIcon {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .breakdownAmount {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  color: var(--text);
 }
 
 .amountNegative {
@@ -111,51 +137,57 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-muted);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .itemRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0;
-  font-size: 0.95rem;
+  padding: 0.75rem 0;
+  font-size: 1rem;
+  color: var(--text);
 }
 
 .itemRow:not(:last-child) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
 }
 
 .formula {
-  margin-bottom: 2rem;
+  margin-bottom: 4rem;
 }
 
 .formulaCard {
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-muted);
   border-radius: var(--radius);
-  padding: 1.25rem 1.5rem;
+  padding: 2rem;
 }
 
 .formulaLabel {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
 
 .formulaText {
-  margin: 0 0 0.5rem;
+  margin: 0 0 1rem;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 1.1rem;
 }
 
 .formulaResult {
-  font-size: 1rem;
+  font-size: 1.25rem;
   color: var(--text);
+  font-weight: 600;
 }
 
 .formulaPositive {
@@ -164,4 +196,10 @@
 
 .formulaNegative {
   color: var(--danger);
+}
+
+@media (max-width: 768px) {
+  .netWorthValue {
+    font-size: 3rem;
+  }
 }

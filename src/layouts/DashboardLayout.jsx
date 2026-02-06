@@ -64,7 +64,7 @@ export default function DashboardLayout() {
           <span className={styles.footerText}>Budget & wealth</span>
         </div>
       </aside>
-      <main className={styles.main}>
+      <main className={`${styles.main} animate-fade-in`}>
         <Outlet />
       </main>
     </div>

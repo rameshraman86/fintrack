@@ -1,45 +1,60 @@
 .page {
-  max-width: 1000px;
+  max-width: 1200px;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .header {
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
 }
 
 .title {
-  margin: 0 0 0.5rem;
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(to bottom right, var(--text), var(--text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
-  margin: 0;
+  margin: 0 0 1.5rem;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 1.1rem;
+  max-width: 600px;
 }
 
 .nameField {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.nameField:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
 .nameLabel {
   font-size: 0.9rem;
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 .nameInput {
-  padding: 0.4rem 0.6rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   width: 12rem;
-  max-width: 100%;
+  font-weight: 600;
 }
 
 .nameInput:focus {
@@ -47,42 +62,42 @@
   border-color: var(--accent);
 }
 
-.nameInput::placeholder {
-  color: var(--text-muted);
-}
-
 .summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 4rem;
 }
 
 .summaryCard {
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-muted);
   border-radius: var(--radius);
-  padding: 1.25rem;
-  transition: background 0.15s, border-color 0.15s;
+  padding: 1.75rem;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .summaryCard:hover {
-  background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
 }
 
 .summaryLabel {
-  display: block;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
 }
 
 .summaryValue {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .summaryPositive .summaryValue {
@@ -94,203 +109,272 @@
 }
 
 .categories {
-  margin-bottom: 2rem;
+  margin-bottom: 4rem;
 }
 
 .sectionTitle {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .legend {
-  margin: 0 0 1rem;
-  font-size: 0.85rem;
+  margin: 0 0 2rem;
+  font-size: 0.95rem;
   color: var(--text-muted);
 }
 
 .legend strong {
   color: var(--text);
-  font-weight: 500;
 }
 
 .categoryGrid {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 2rem;
 }
 
 .categoryCard {
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-muted);
   border-radius: var(--radius);
-  padding: 1.25rem;
-  transition: background 0.15s, border-color 0.15s;
+  padding: 2rem;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
 }
 
 .categoryCard:hover {
+  border-color: var(--border);
   background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .categoryHeader {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .categoryDot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
 }
 
 .categoryName {
-  font-weight: 500;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .categoryAmounts {
-  font-size: 1.1rem;
-  margin-bottom: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.categoryBalance {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.balancePositive {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.balanceNegative {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .categorySeparator {
-  color: var(--text-muted);
-  margin: 0 0.25rem;
+  color: var(--text-dim);
+  font-size: 1rem;
 }
 
 .categoryBudget {
   color: var(--text-muted);
+  font-size: 1.1rem;
 }
 
 .progressTrack {
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
+  height: 8px;
+  background: var(--border-muted);
+  border-radius: 4px;
   overflow: hidden;
+  margin-bottom: 2rem;
 }
 
 .progressFill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .subList {
   list-style: none;
-  margin: 1rem 0 0;
+  margin: 0;
   padding: 0;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .subRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-  font-size: 0.9rem;
-  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.subRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .subLabel {
-  color: var(--text-muted);
-  min-width: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+  flex: 1;
 }
 
 .subInputs {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .subSeparator {
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-weight: 700;
 }
 
 .amountInput {
-  width: 4.25rem;
-  padding: 0.35rem 0.5rem;
+  width: 4.5rem;
+  padding: 0.4rem 0.6rem;
   background: var(--bg-app);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-muted);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.85rem;
+  font-weight: 600;
+  text-align: right;
 }
 
 .amountInput:focus {
   outline: none;
   border-color: var(--accent);
+  background: var(--bg-card);
 }
 
-.amountInput::placeholder {
+.budgetReadOnly {
+  display: inline-block;
+  min-width: 4.5rem;
+  padding: 0.4rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
   color: var(--text-muted);
+  text-align: right;
+  font-weight: 600;
 }
 
 .singleCategoryInputs {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  margin-top: 0.75rem;
-  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
 }
 
 .inlineLabel {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
 }
 
-.inlineLabel .amountInput {
-  width: 6rem;
+.inlineLabel .amountInput,
+.inlineLabel .budgetReadOnly {
+  width: 100%;
+  text-align: left;
+  font-size: 1rem;
+  padding: 0.6rem 0.875rem;
 }
 
 .group {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--border-muted);
 }
 
 .groupTitle {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+  margin-bottom: 1rem;
 }
 
 .notesBlock {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-muted);
 }
 
 .notesLabel {
   display: block;
   font-size: 0.8rem;
   color: var(--text-muted);
-  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
 }
 
 .notesInput {
   width: 100%;
-  padding: 0.6rem 0.75rem;
+  padding: 1rem;
   background: var(--bg-app);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-muted);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-family: inherit;
   resize: vertical;
-  min-height: 4rem;
+  min-height: 6rem;
+  line-height: 1.5;
 }
 
 .notesInput:focus {
   outline: none;
   border-color: var(--accent);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-.notesInput::placeholder {
-  color: var(--text-muted);
+@media (max-width: 768px) {
+  .categoryGrid {
+    grid-template-columns: 1fr;
+  }
 }

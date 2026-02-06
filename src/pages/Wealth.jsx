@@ -25,7 +25,7 @@ export default function Wealth() {
   const totalWealth = totalAssets - totalLiabilities
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} animate-fade-in`}>
       <header className={styles.header}>
         <h1 className={styles.title}>Wealth Overview</h1>
         <p className={styles.subtitle}>
@@ -50,7 +50,7 @@ export default function Wealth() {
         <div className={styles.breakdownGrid}>
           <div className={styles.breakdownCard}>
             <h2 className={styles.breakdownTitle}>
-              <span className={styles.breakdownIcon} style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>↑</span>
+              <span className={styles.breakdownIcon} style={{ background: 'var(--success-soft)', color: 'var(--success)' }}>💰</span>
               Assets
             </h2>
             <p className={`${styles.breakdownAmount} mono`}>
@@ -70,7 +70,7 @@ export default function Wealth() {
 
           <div className={styles.breakdownCard}>
             <h2 className={styles.breakdownTitle}>
-              <span className={styles.breakdownIcon} style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>↓</span>
+              <span className={styles.breakdownIcon} style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>📉</span>
               Liabilities & Debt
             </h2>
             <p className={`${styles.breakdownAmount} mono ${styles.amountNegative}`}>
