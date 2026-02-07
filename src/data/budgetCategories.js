@@ -32,7 +32,6 @@ export const BUDGET_CATEGORIES = [
   { id: 'internet', name: 'Internet' },
   { id: 'going-out', name: 'Going out' },
   { id: 'personal-expenses', name: 'Personal expenses' },
-  { id: 'phone-bill', name: 'My phone bill' },
   { id: 'common-shopping', name: 'Common shopping' },
   {
     id: 'travelling',
@@ -103,3 +102,67 @@ export const EXPENSE_NOTES_CATEGORY_IDS = [
   'personal-expenses',
   'common-shopping',
 ]
+
+/**
+ * New data model: categories with user-managed subCategories.
+ * Converts legacy BUDGET_CATEGORIES into Category[] with subCategories (SubCategory = { id, name, amount }).
+ */
+export function getInitialCategories() {
+  return BUDGET_CATEGORIES.map((cat) => {
+    if (cat.items) {
+      return {
+        id: cat.id,
+        name: cat.name,
+        subCategories: cat.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          amount: 0,
+        })),
+      }
+    }
+    if (cat.groups) {
+      const subCategories = []
+      for (const group of cat.groups) {
+        for (const item of group.items) {
+          subCategories.push({
+            id: `${group.id}_${item.id}`,
+            name: item.name,
+            amount: 0,
+          })
+        }
+      }
+      return { id: cat.id, name: cat.name, subCategories }
+    }
+    return {
+      id: cat.id,
+      name: cat.name,
+      subCategories: [{ id: cat.id, name: cat.name, amount: 0 }],
+    }
+  })
+}
+
+/** Get flat list of { key, label, categoryName } from new Category[] shape. Key = categoryId_subCategoryId. */
+export function getBudgetKeysFromCategories(categories) {
+  const result = []
+  for (const cat of categories) {
+    for (const sub of cat.subCategories) {
+      result.push({
+        key: `${cat.id}_${sub.id}`,
+        label: sub.name,
+        categoryName: cat.name,
+      })
+    }
+  }
+  return result
+}
+
+/** Build key -> budget amount map from categories (for Expenses totals and compatibility). */
+export function getBudgetMapFromCategories(categories) {
+  const map = {}
+  for (const cat of categories) {
+    for (const sub of cat.subCategories) {
+      map[`${cat.id}_${sub.id}`] = Number(sub.amount) || 0
+    }
+  }
+  return map
+}

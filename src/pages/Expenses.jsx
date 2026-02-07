@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
-  BUDGET_CATEGORIES,
-  getBudgetKeys,
+  getBudgetKeysFromCategories,
+  getBudgetMapFromCategories,
   EXPENSE_NOTES_CATEGORY_IDS,
 } from '../data/budgetCategories'
 import { useAppData } from '../context/AppData'
@@ -21,7 +21,6 @@ const CATEGORY_ICONS = {
   internet: '🌐',
   'going-out': '🍻',
   'personal-expenses': '👤',
-  'phone-bill': '📱',
   'common-shopping': '🛍️',
   travelling: '✈️',
   miscellaneous: '📦',
@@ -51,32 +50,16 @@ function ChevronIcon({ open }) {
 
 /* ---------- helpers ---------- */
 
-function getCategoryTotals(category, budget, spent, otherSpent) {
-  if (category.items) {
-    const mine = category.items.reduce(
-      (sum, item) => sum + (Number(spent[`${category.id}_${item.id}`]) || 0), 0)
-    const other = category.items.reduce(
-      (sum, item) => sum + (Number(otherSpent[`${category.id}_${item.id}`]) || 0), 0)
-    const bgt = category.items.reduce(
-      (sum, item) => sum + (Number(budget[`${category.id}_${item.id}`]) || 0), 0)
-    return { mine, other, total: mine + other, budget: bgt }
+function getCategoryTotals(category, budgetMap, spent, otherSpent) {
+  let mine = 0
+  let other = 0
+  let bgt = 0
+  for (const sub of category.subCategories) {
+    const key = `${category.id}_${sub.id}`
+    mine += Number(spent[key]) || 0
+    other += Number(otherSpent[key]) || 0
+    bgt += Number(budgetMap[key]) || 0
   }
-  if (category.groups) {
-    let mine = 0, other = 0, bgt = 0
-    for (const group of category.groups) {
-      for (const item of group.items) {
-        const key = `${category.id}_${group.id}_${item.id}`
-        mine += Number(spent[key]) || 0
-        other += Number(otherSpent[key]) || 0
-        bgt += Number(budget[key]) || 0
-      }
-    }
-    return { mine, other, total: mine + other, budget: bgt }
-  }
-  const key = category.id
-  const mine = Number(spent[key]) || 0
-  const other = Number(otherSpent[key]) || 0
-  const bgt = Number(budget[key]) || 0
   return { mine, other, total: mine + other, budget: bgt }
 }
 
@@ -88,7 +71,7 @@ function fmt(n) {
 
 export default function Expenses() {
   const {
-    budget,
+    categories,
     expenseSpent: spent,
     expenseOtherSpent: otherSpent,
     expenseNotes: notes,
@@ -99,29 +82,31 @@ export default function Expenses() {
     setOtherPersonName,
   } = useAppData()
 
+  const budgetMap = useMemo(() => getBudgetMapFromCategories(categories), [categories])
+
   const [expanded, setExpanded] = useState({})
 
   const toggle = useCallback((id) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
   }, [])
 
-  const allExpanded = BUDGET_CATEGORIES.every((c) => expanded[c.id])
+  const allExpanded = categories.length > 0 && categories.every((c) => expanded[c.id])
   const toggleAll = useCallback(() => {
     if (allExpanded) {
       setExpanded({})
     } else {
-      setExpanded(Object.fromEntries(BUDGET_CATEGORIES.map((c) => [c.id, true])))
+      setExpanded(Object.fromEntries(categories.map((c) => [c.id, true])))
     }
-  }, [allExpanded])
+  }, [allExpanded, categories])
 
   const otherLabel = otherPersonName.trim() || 'Them'
   const otherLabelPossessive = otherPersonName.trim() ? `${otherPersonName.trim()}'s` : 'Their'
 
-  const allKeys = getBudgetKeys(BUDGET_CATEGORIES)
+  const allKeys = getBudgetKeysFromCategories(categories)
   const totalSpentMine = allKeys.reduce((sum, { key }) => sum + (Number(spent[key]) || 0), 0)
   const totalSpentOther = allKeys.reduce((sum, { key }) => sum + (Number(otherSpent[key]) || 0), 0)
   const totalSpent = totalSpentMine + totalSpentOther
-  const totalBudget = allKeys.reduce((sum, { key }) => sum + (Number(budget[key]) || 0), 0)
+  const totalBudget = allKeys.reduce((sum, { key }) => sum + (Number(budgetMap[key]) || 0), 0)
   const remaining = totalBudget - totalSpent
 
   return (
@@ -178,12 +163,12 @@ export default function Expenses() {
         </div>
 
         <div className={styles.accordionList}>
-          {BUDGET_CATEGORIES.map((category, catIndex) => {
+          {categories.map((category, catIndex) => {
             const color = getCategoryColor(catIndex)
             const hasNotes = EXPENSE_NOTES_CATEGORY_IDS.includes(category.id)
             const icon = CATEGORY_ICONS[category.id] || '💰'
             const isOpen = !!expanded[category.id]
-            const totals = getCategoryTotals(category, budget, spent, otherSpent)
+            const totals = getCategoryTotals(category, budgetMap, spent, otherSpent)
             const balance = totals.budget - totals.total
             const pct = totals.budget > 0 ? Math.min(100, (totals.total / totals.budget) * 100) : 0
 
@@ -219,102 +204,35 @@ export default function Expenses() {
                 {/* --- Expanded body --- */}
                 {isOpen && (
                   <div className={styles.accordionBody}>
-                    {/* Categories with items (House, Car) */}
-                    {category.items && (
-                      <ul className={styles.subList}>
-                        {category.items.map((item) => {
-                          const key = `${category.id}_${item.id}`
-                          const itemBudget = Number(budget[key]) || 0
-                          return (
-                            <li key={key} className={styles.subRow}>
-                              <span className={styles.subLabel}>{item.name}</span>
-                              <span className={styles.subInputs}>
-                                <DecimalInput
-                                  placeholder="You"
-                                  className={styles.amountInput}
-                                  value={Number(spent[key]) || 0}
-                                  onChange={(v) => setSpentAmount(key, v)}
-                                />
-                                <DecimalInput
-                                  placeholder={otherLabel}
-                                  className={styles.amountInput}
-                                  value={Number(otherSpent[key]) || 0}
-                                  onChange={(v) => setOtherSpentAmount(key, v)}
-                                />
-                                <span className={styles.subSep}>/</span>
-                                <span className={styles.budgetReadOnly} title="Set on Budget page">
-                                  ${fmt(itemBudget)}
-                                </span>
+                    <ul className={styles.subList}>
+                      {category.subCategories.map((sub) => {
+                        const key = `${category.id}_${sub.id}`
+                        const itemBudget = Number(budgetMap[key]) || 0
+                        return (
+                          <li key={key} className={styles.subRow}>
+                            <span className={styles.subLabel}>{sub.name}</span>
+                            <span className={styles.subInputs}>
+                              <DecimalInput
+                                placeholder="You"
+                                className={styles.amountInput}
+                                value={Number(spent[key]) || 0}
+                                onChange={(v) => setSpentAmount(key, v)}
+                              />
+                              <DecimalInput
+                                placeholder={otherLabel}
+                                className={styles.amountInput}
+                                value={Number(otherSpent[key]) || 0}
+                                onChange={(v) => setOtherSpentAmount(key, v)}
+                              />
+                              <span className={styles.subSep}>/</span>
+                              <span className={styles.budgetReadOnly} title="Set on Budget page">
+                                ${fmt(itemBudget)}
                               </span>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-
-                    {/* Categories with groups (Travelling) */}
-                    {category.groups && category.groups.map((group) => (
-                      <div key={group.id} className={styles.group}>
-                        <div className={styles.groupTitle}>{group.name}</div>
-                        <ul className={styles.subList}>
-                          {group.items.map((item) => {
-                            const key = `${category.id}_${group.id}_${item.id}`
-                            const itemBudget = Number(budget[key]) || 0
-                            return (
-                              <li key={key} className={styles.subRow}>
-                                <span className={styles.subLabel}>{item.name}</span>
-                                <span className={styles.subInputs}>
-                                  <DecimalInput
-                                    placeholder="You"
-                                    className={styles.amountInput}
-                                    value={Number(spent[key]) || 0}
-                                    onChange={(v) => setSpentAmount(key, v)}
-                                  />
-                                  <DecimalInput
-                                    placeholder={otherLabel}
-                                    className={styles.amountInput}
-                                    value={Number(otherSpent[key]) || 0}
-                                    onChange={(v) => setOtherSpentAmount(key, v)}
-                                  />
-                                  <span className={styles.subSep}>/</span>
-                                  <span className={styles.budgetReadOnly} title="Set on Budget page">
-                                    ${fmt(itemBudget)}
-                                  </span>
-                                </span>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      </div>
-                    ))}
-
-                    {/* Simple categories — inline inputs */}
-                    {!category.items && !category.groups && (
-                      <div className={styles.simpleInputs}>
-                        <label className={styles.inlineLabel}>
-                          You
-                          <DecimalInput
-                            className={styles.amountInput}
-                            value={totals.mine}
-                            onChange={(v) => setSpentAmount(category.id, v)}
-                          />
-                        </label>
-                        <label className={styles.inlineLabel}>
-                          {otherLabel}
-                          <DecimalInput
-                            className={styles.amountInput}
-                            value={totals.other}
-                            onChange={(v) => setOtherSpentAmount(category.id, v)}
-                          />
-                        </label>
-                        <label className={styles.inlineLabel}>
-                          Budget
-                          <span className={styles.budgetReadOnly} title="Set on Budget page">
-                            ${fmt(totals.budget)}
-                          </span>
-                        </label>
-                      </div>
-                    )}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
 
                     {/* Notes */}
                     {hasNotes && (
@@ -327,7 +245,7 @@ export default function Expenses() {
                           className={styles.notesInput}
                           value={notes[category.id] ?? ''}
                           onChange={(e) => setExpenseNote(category.id, e.target.value)}
-                          placeholder="e.g. gym (56.49), gdrive (13.2)..."
+                          placeholder=""
                           rows={3}
                         />
                       </div>
