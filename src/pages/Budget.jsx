@@ -123,6 +123,59 @@ function InlineEditableName({ value, onSave, className, placeholder = 'Name' }) 
   )
 }
 
+function AddCategoryRow({ onAdd, onCancel }) {
+  const [name, setName] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  const handleSave = useCallback(() => {
+    const trimmed = name.trim()
+    if (trimmed) {
+      onAdd(trimmed)
+      setName('')
+    }
+    onCancel?.()
+  }, [name, onAdd, onCancel])
+
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        handleSave()
+      }
+      if (e.key === 'Escape') {
+        setName('')
+        onCancel?.()
+      }
+    },
+    [handleSave, onCancel]
+  )
+
+  return (
+    <div className={styles.addCategoryRow}>
+      <input
+        ref={inputRef}
+        type="text"
+        className={styles.addCategoryInput}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="New category name"
+        aria-label="New category name"
+      />
+      <button type="button" className={styles.saveSubBtn} onClick={handleSave}>
+        Save
+      </button>
+      <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+        Cancel
+      </button>
+    </div>
+  )
+}
+
 function AddSubCategoryRow({ categoryId, onAdd, onBlur }) {
   const [name, setName] = useState('')
   const inputRef = useRef(null)
@@ -183,9 +236,11 @@ export default function Budget() {
     setCategoryName,
     setSubCategoryName,
     removeCategory,
+    addCategory,
   } = useAppData()
   const [expanded, setExpanded] = useState({})
   const [addingForId, setAddingForId] = useState(null)
+  const [addingNewCategory, setAddingNewCategory] = useState(false)
 
   const toggle = useCallback((id) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -211,6 +266,14 @@ export default function Budget() {
       setAddingForId(null)
     },
     [addSubCategory]
+  )
+
+  const handleAddCategory = useCallback(
+    (name) => {
+      addCategory(name)
+      setAddingNewCategory(false)
+    },
+    [addCategory]
   )
 
   return (
@@ -357,6 +420,21 @@ export default function Budget() {
               </div>
             )
           })}
+          {addingNewCategory && (
+            <AddCategoryRow
+              onAdd={handleAddCategory}
+              onCancel={() => setAddingNewCategory(false)}
+            />
+          )}
+          {!addingNewCategory && (
+            <button
+              type="button"
+              className={styles.addCategoryTrigger}
+              onClick={() => setAddingNewCategory(true)}
+            >
+              + Add category
+            </button>
+          )}
         </div>
       </section>
     </div>

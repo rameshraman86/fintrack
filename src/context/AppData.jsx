@@ -108,6 +108,10 @@ function makeSubCategoryId() {
   return `sc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
+function makeCategoryId() {
+  return `cat_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
 const AppDataContext = createContext(null)
 
 export function AppDataProvider({ children }) {
@@ -208,6 +212,19 @@ export function AppDataProvider({ children }) {
     })
   }, [])
 
+  const addCategory = useCallback((name) => {
+    const trimmed = (name || '').trim()
+    if (!trimmed) return
+    setState((prev) => {
+      const newCategory = {
+        id: makeCategoryId(),
+        name: trimmed,
+        subCategories: [],
+      }
+      return { ...prev, categories: [...prev.categories, newCategory] }
+    })
+  }, [])
+
   const setExpenseSpent = useCallback((key, value) => {
     setState((prev) => ({
       ...prev,
@@ -246,6 +263,7 @@ export function AppDataProvider({ children }) {
       setCategoryName,
       setSubCategoryName,
       removeCategory,
+      addCategory,
       setExpenseSpent,
       setExpenseOtherSpent,
       setExpenseNote,
@@ -263,6 +281,7 @@ export function AppDataProvider({ children }) {
       setCategoryName,
       setSubCategoryName,
       removeCategory,
+      addCategory,
       setExpenseSpent,
       setExpenseOtherSpent,
       setExpenseNote,
