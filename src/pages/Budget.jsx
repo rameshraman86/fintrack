@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useAppData } from '../context/AppData'
+import { useAppData, getBudgetKey } from '../context/AppData'
 import DecimalInput from '../components/DecimalInput'
 import styles from './Budget.module.css'
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const CATEGORY_ICONS = {
   house: '🏠',
@@ -52,24 +54,25 @@ function getCategoryBudget(category) {
   return category.subCategories.reduce((sum, sub) => sum + (Number(sub.amount) || 0), 0)
 }
 
-function InlineEditableName({ value, onSave, className, placeholder = 'Name' }) {
+function InlineEditableName({ value, onSave, className, placeholder = 'Name', disabled }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const inputRef = useRef(null)
 
   useEffect(() => {
-    if (editing) {
+    if (editing && !disabled) {
       setDraft(value)
       inputRef.current?.focus()
       inputRef.current?.select()
     }
-  }, [editing, value])
+  }, [editing, value, disabled])
 
   const commit = useCallback(() => {
+    if (disabled) return
     const trimmed = (draft || '').trim()
     if (trimmed && trimmed !== value) onSave(trimmed)
     setEditing(false)
-  }, [draft, value, onSave])
+  }, [draft, value, onSave, disabled])
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -85,6 +88,9 @@ function InlineEditableName({ value, onSave, className, placeholder = 'Name' }) 
     [commit, value]
   )
 
+  if (disabled) {
+    return <span className={className}>{value || placeholder}</span>
+  }
   if (editing) {
     return (
       <input
@@ -230,6 +236,8 @@ function AddSubCategoryRow({ categoryId, onAdd, onBlur }) {
 export default function Budget() {
   const {
     categories,
+    budgets,
+    selectedBudgetKey,
     setSubCategoryBudget,
     addSubCategory,
     removeSubCategory,
@@ -237,10 +245,45 @@ export default function Budget() {
     setSubCategoryName,
     removeCategory,
     addCategory,
+    setSelectedBudget,
+    addBudgetMonth,
+    getYears,
+    getMonthsForYear,
+    getNextMonthToAdd,
+    isPastMonth,
+    isCurrentMonth,
+    isFutureMonth,
+    getCurrentYearMonth,
+    canAddYear,
   } = useAppData()
+
   const [expanded, setExpanded] = useState({})
   const [addingForId, setAddingForId] = useState(null)
   const [addingNewCategory, setAddingNewCategory] = useState(false)
+
+  // Initialize viewYear from selected budget or current date
+  const [viewYear, setViewYear] = useState(() => {
+    if (selectedBudgetKey) {
+      return parseInt(selectedBudgetKey.split('-')[0], 10)
+    }
+    return getCurrentYearMonth().year
+  })
+
+  // Keep viewYear in sync if selectedBudgetKey changes (e.g. on load)
+  useEffect(() => {
+    if (selectedBudgetKey) {
+      const y = parseInt(selectedBudgetKey.split('-')[0], 10)
+      setViewYear(y)
+    }
+  }, [selectedBudgetKey])
+
+  const selectedBudget = selectedBudgetKey ? budgets[selectedBudgetKey] : null
+  const selectedYear = selectedBudget?.year
+  const selectedMonth = selectedBudget?.month
+  const isReadOnly = selectedBudget
+    ? isPastMonth(selectedYear, selectedMonth) &&
+      !(selectedYear === 2026 && selectedMonth === 1)
+    : false
 
   const toggle = useCallback((id) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -276,167 +319,286 @@ export default function Budget() {
     [addCategory]
   )
 
+  const handleAddMonth = useCallback(
+    (year) => {
+      const nextMonth = getNextMonthToAdd(year)
+      if (nextMonth != null) addBudgetMonth(year, nextMonth)
+    },
+    [getNextMonthToAdd, addBudgetMonth]
+  )
+
+  const { year: currentYear, month: currentMonth } = getCurrentYearMonth()
+  const years = getYears()
+  const displayYears = Array.from(new Set([...years, viewYear])).sort((a, b) => a - b)
+  const maxDisplayYear = displayYears.length > 0 ? Math.max(...displayYears) : 0
+  const canAddNextYear =
+    canAddYear() &&
+    currentMonth === 12 &&
+    maxDisplayYear < currentYear + 1
+  const nextYearToAdd = maxDisplayYear + 1
+
+  const months = getMonthsForYear(viewYear)
+  const nextMonth = getNextMonthToAdd(viewYear)
+  const canAdd = nextMonth != null && !isPastMonth(viewYear, nextMonth)
+
+  const selectedLabel = selectedBudget
+    ? `${MONTH_NAMES[selectedBudget.month - 1]} ${selectedBudget.year}`
+    : 'Select a month'
+
   return (
     <div className={`${styles.page} animate-fade-in`}>
       <header className={styles.header}>
         <h1 className={styles.title}>Monthly Budget</h1>
-        <p className={styles.subtitle}>
-          Set your budget per category. Click names to rename; add or remove sub-categories and categories.
-        </p>
       </header>
 
-      <section className={styles.totalSection}>
-        <div className={styles.totalCard}>
-          <span className={styles.totalLabel}>Total monthly budget</span>
-          <span className={`${styles.totalValue} mono`}>${fmt(totalMonthly)}</span>
-        </div>
-      </section>
-
-      <section className={styles.categories}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Categories</h2>
-          <button className={styles.expandAllBtn} onClick={toggleAll} type="button">
-            {allExpanded ? 'Collapse all' : 'Expand all'}
-          </button>
-        </div>
-
-        <div className={styles.accordionList}>
-          {categories.map((category) => {
-            const icon = CATEGORY_ICONS[category.id] || '💰'
-            const isOpen = !!expanded[category.id]
-            const catBudget = getCategoryBudget(category)
-            const isAdding = addingForId === category.id
-
-            return (
-              <div key={category.id} className={`${styles.accordion} ${isOpen ? styles.accordionOpen : ''}`}>
-                <div className={styles.accordionHeaderWrap}>
-                  <button
-                    className={styles.accordionHeader}
-                    onClick={() => toggle(category.id)}
-                    type="button"
-                    aria-expanded={isOpen}
-                  >
-                    <span className={styles.accordionIcon}>{icon}</span>
-                    <span className={styles.accordionNameWrap} onClick={(e) => e.stopPropagation()}>
-                      <InlineEditableName
-                        value={category.name}
-                        onSave={(name) => setCategoryName(category.id, name)}
-                        className={styles.accordionNameEditable}
-                      />
-                    </span>
-                    <span className={styles.accordionMeta}>
-                      <span className={`${styles.accordionAmount} mono`}>${fmt(catBudget)}</span>
-                      <ChevronIcon open={isOpen} />
-                    </span>
-                  </button>
-                  <div className={styles.accordionActions}>
-                    <button
-                      type="button"
-                      className={styles.iconBtn}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (!expanded[category.id]) toggle(category.id)
-                        setAddingForId(category.id)
-                      }}
-                      aria-label="Add sub-category"
-                      title="Add sub-category"
-                    >
-                      <PlusIcon />
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const message = `Delete "${category.name}"? This will remove all budget and expense data for this category.`
-                        if (window.confirm(message)) {
-                          removeCategory(category.id)
-                        }
-                      }}
-                      aria-label="Delete category"
-                      title="Delete category"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </div>
-
-                {isOpen && (
-                  <div className={styles.accordionBody}>
-                    <ul className={styles.itemList}>
-                      {category.subCategories.map((sub) => {
-                        const key = `${category.id}_${sub.id}`
-                        return (
-                          <li key={key} className={styles.subCategoryRow}>
-                            <span className={styles.subCategoryNameWrap}>
-                              <InlineEditableName
-                                value={sub.name}
-                                onSave={(name) => setSubCategoryName(category.id, sub.id, name)}
-                                className={styles.subCategoryNameEditable}
-                              />
-                            </span>
-                            <div className={styles.subCategoryActions}>
-                              <div className={styles.inputWrap}>
-                                <span className={styles.currency}>$</span>
-                                <DecimalInput
-                                  id={`b-${key}`}
-                                  className={styles.input}
-                                  value={Number(sub.amount) || 0}
-                                  onChange={(v) => setSubCategoryBudget(category.id, sub.id, v)}
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                className={`${styles.iconBtn} ${styles.iconBtnDanger} ${styles.removeSubBtn}`}
-                                onClick={() => removeSubCategory(category.id, sub.id)}
-                                aria-label={`Remove ${sub.name}`}
-                                title="Remove sub-category"
-                              >
-                                −
-                              </button>
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                    {isAdding && (
-                      <AddSubCategoryRow
-                        categoryId={category.id}
-                        onAdd={(name) => handleAddSubCategory(category.id, name)}
-                        onBlur={() => setAddingForId(null)}
-                      />
-                    )}
-                    {!isAdding && (
-                      <button
-                        type="button"
-                        className={styles.addSubTrigger}
-                        onClick={() => setAddingForId(category.id)}
-                      >
-                        + Add sub-category
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-          {addingNewCategory && (
-            <AddCategoryRow
-              onAdd={handleAddCategory}
-              onCancel={() => setAddingNewCategory(false)}
-            />
-          )}
-          {!addingNewCategory && (
+      {/* Year / Month navigation */}
+      <section className={styles.navSection}>
+        {/* Years Row */}
+        <div className={styles.yearTabs}>
+          {displayYears.map((year) => (
+            <button
+              key={year}
+              type="button"
+              className={`${styles.yearTab} ${year === viewYear ? styles.yearTabActive : ''}`}
+              onClick={() => setViewYear(year)}
+            >
+              {year}
+            </button>
+          ))}
+          {canAddNextYear && (
             <button
               type="button"
-              className={styles.addCategoryTrigger}
-              onClick={() => setAddingNewCategory(true)}
+              className={styles.yearTab}
+              onClick={() => setViewYear(nextYearToAdd)}
+              title={`Plan for ${nextYearToAdd}`}
             >
-              + Add category
+              + {nextYearToAdd}
+            </button>
+          )}
+        </div>
+
+        {/* Months Row */}
+        <div className={styles.monthGrid}>
+          {months.map((m) => {
+            const key = getBudgetKey(viewYear, m)
+            const isSelected = key === selectedBudgetKey
+            const isPast = isPastMonth(viewYear, m)
+            const isCurrent = isCurrentMonth(viewYear, m)
+            const isFuture = isFutureMonth(viewYear, m)
+            
+            let btnClass = styles.monthBtn
+            if (isSelected) btnClass += ` ${styles.monthBtnSelected}`
+            else if (isPast) btnClass += ` ${styles.monthBtnPast}`
+            else if (isCurrent) btnClass += ` ${styles.monthBtnCurrent}`
+            else if (isFuture) btnClass += ` ${styles.monthBtnFuture}`
+
+            return (
+              <button
+                key={key}
+                type="button"
+                className={btnClass}
+                onClick={() => setSelectedBudget(key)}
+              >
+                {MONTH_NAMES[m - 1]}
+              </button>
+            )
+          })}
+          {canAdd && (
+            <button
+              type="button"
+              className={styles.addMonthBtn}
+              onClick={() => handleAddMonth(viewYear)}
+            >
+              + Add {MONTH_NAMES[nextMonth - 1]}
             </button>
           )}
         </div>
       </section>
+
+      {/* Selected month budget */}
+      {selectedBudgetKey && (
+        <>
+          <section className={styles.totalSection}>
+            <div className={styles.totalCard}>
+              <span className={styles.totalLabel}>
+                {selectedLabel} — Total budget
+              </span>
+              <span className={`${styles.totalValue} mono`}>${fmt(totalMonthly)}</span>
+              {isReadOnly && (
+                <span className={styles.readOnlyBadge}>Read-only</span>
+              )}
+            </div>
+          </section>
+
+          <section className={styles.categories}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Categories</h2>
+              {!isReadOnly && (
+                <button className={styles.expandAllBtn} onClick={toggleAll} type="button">
+                  {allExpanded ? 'Collapse all' : 'Expand all'}
+                </button>
+              )}
+            </div>
+
+            <div className={styles.accordionList}>
+              {categories.map((category) => {
+                const icon = CATEGORY_ICONS[category.id] || '💰'
+                const isOpen = !!expanded[category.id]
+                const catBudget = getCategoryBudget(category)
+                const isAdding = addingForId === category.id
+
+                return (
+                  <div key={category.id} className={`${styles.accordion} ${isOpen ? styles.accordionOpen : ''}`}>
+                    <div className={styles.accordionHeaderWrap}>
+                      <button
+                        className={styles.accordionHeader}
+                        onClick={() => !isReadOnly && toggle(category.id)}
+                        type="button"
+                        aria-expanded={isOpen}
+                        disabled={isReadOnly}
+                      >
+                        <span className={styles.accordionIcon}>{icon}</span>
+                        <span className={styles.accordionNameWrap} onClick={(e) => !isReadOnly && e.stopPropagation()}>
+                          <InlineEditableName
+                            value={category.name}
+                            onSave={(name) => setCategoryName(category.id, name)}
+                            className={styles.accordionNameEditable}
+                            disabled={isReadOnly}
+                          />
+                        </span>
+                        <span className={styles.accordionMeta}>
+                          <span className={`${styles.accordionAmount} mono`}>${fmt(catBudget)}</span>
+                          {!isReadOnly && <ChevronIcon open={isOpen} />}
+                        </span>
+                      </button>
+                      {!isReadOnly && (
+                        <div className={styles.accordionActions}>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (!expanded[category.id]) toggle(category.id)
+                              setAddingForId(category.id)
+                            }}
+                            aria-label="Add sub-category"
+                            title="Add sub-category"
+                          >
+                            <PlusIcon />
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const message = `Delete "${category.name}"? This will remove all budget and expense data for this category.`
+                              if (window.confirm(message)) {
+                                removeCategory(category.id)
+                              }
+                            }}
+                            aria-label="Delete category"
+                            title="Delete category"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {isOpen && (
+                      <div className={styles.accordionBody}>
+                        <ul className={styles.itemList}>
+                          {category.subCategories.map((sub) => {
+                            const key = `${category.id}_${sub.id}`
+                            return (
+                              <li key={key} className={styles.subCategoryRow}>
+                                <span className={styles.subCategoryNameWrap}>
+                                  <InlineEditableName
+                                    value={sub.name}
+                                    onSave={(name) => setSubCategoryName(category.id, sub.id, name)}
+                                    className={styles.subCategoryNameEditable}
+                                    disabled={isReadOnly}
+                                  />
+                                </span>
+                                <div className={styles.subCategoryActions}>
+                                  <div className={styles.inputWrap}>
+                                    <span className={styles.currency}>$</span>
+                                    <DecimalInput
+                                      id={`b-${key}`}
+                                      className={styles.input}
+                                      value={Number(sub.amount) || 0}
+                                      onChange={(v) => setSubCategoryBudget(category.id, sub.id, v)}
+                                      disabled={isReadOnly}
+                                    />
+                                  </div>
+                                  {!isReadOnly && (
+                                    <button
+                                      type="button"
+                                      className={`${styles.iconBtn} ${styles.iconBtnDanger} ${styles.removeSubBtn}`}
+                                      onClick={() => removeSubCategory(category.id, sub.id)}
+                                      aria-label={`Remove ${sub.name}`}
+                                      title="Remove sub-category"
+                                    >
+                                      −
+                                    </button>
+                                  )}
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                        {!isReadOnly && (
+                          <>
+                            {isAdding && (
+                              <AddSubCategoryRow
+                                categoryId={category.id}
+                                onAdd={(name) => handleAddSubCategory(category.id, name)}
+                                onBlur={() => setAddingForId(null)}
+                              />
+                            )}
+                            {!isAdding && (
+                              <button
+                                type="button"
+                                className={styles.addSubTrigger}
+                                onClick={() => setAddingForId(category.id)}
+                              >
+                                + Add sub-category
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {!isReadOnly && (
+                <>
+                  {addingNewCategory && (
+                    <AddCategoryRow
+                      onAdd={handleAddCategory}
+                      onCancel={() => setAddingNewCategory(false)}
+                    />
+                  )}
+                  {!addingNewCategory && (
+                    <button
+                      type="button"
+                      className={styles.addCategoryTrigger}
+                      onClick={() => setAddingNewCategory(true)}
+                    >
+                      + Add category
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+        </>
+      )}
+
+      {!selectedBudgetKey && (
+        <p className={styles.selectMonthHint}>Select a month above to view or edit its budget.</p>
+      )}
     </div>
   )
 }

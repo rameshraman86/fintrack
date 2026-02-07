@@ -21,34 +21,54 @@ function isPlainObject(v) {
   return v != null && typeof v === 'object' && !Array.isArray(v)
 }
 
-function toNumberMap(obj) {
-  if (!isPlainObject(obj)) return {}
-  return Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => {
-      const n = Number(v)
-      return [k, Number.isFinite(n) ? n : 0]
-    })
-  )
-}
-
 const EXCLUDED_CATEGORY_IDS = new Set(['phone-bill'])
 
 function filterExcludedCategories(categories) {
   return categories.filter((c) => !EXCLUDED_CATEGORY_IDS.has(c.id))
 }
 
-/** Migrate legacy storage (budget map) to categories-based state. */
-function migrateFromLegacy(data) {
-  const categories = filterExcludedCategories(getInitialCategories())
-  const legacyBudget = isPlainObject(data?.budget) ? data.budget : {}
-  for (const cat of categories) {
-    for (const sub of cat.subCategories) {
-      const key = `${cat.id}_${sub.id}`
-      const val = legacyBudget[key]
-      if (val != null) sub.amount = Number(val) || 0
-    }
+/** Deep clone categories (for copying previous month's budget). */
+function deepCloneCategories(categories) {
+  return JSON.parse(JSON.stringify(categories))
+}
+
+export function getBudgetKey(year, month) {
+  return `${year}-${month}`
+}
+
+/** App's "current" month for Past/Current/Future classification. */
+export function getCurrentYearMonth() {
+  const d = new Date()
+  return { year: d.getFullYear(), month: d.getMonth() + 1 }
+}
+
+function getDefaultBudgetsAndSelection() {
+  const initialCategories = filterExcludedCategories(getInitialCategories())
+  const janKey = getBudgetKey(2026, 1)
+  const febKey = getBudgetKey(2026, 2)
+  const budgets = {
+    [janKey]: { year: 2026, month: 1, categories: deepCloneCategories(initialCategories) },
+    [febKey]: { year: 2026, month: 2, categories: deepCloneCategories(initialCategories) },
   }
-  const validKeys = new Set(getBudgetKeysFromCategories(categories).map((k) => k.key))
+  return { budgets, selectedBudgetKey: febKey }
+}
+
+function compareYearMonth(aYear, aMonth, bYear, bMonth) {
+  if (aYear !== bYear) return aYear - bYear
+  return aMonth - bMonth
+}
+
+/** Migrate from legacy single-categories state to budgets by year-month. */
+function migrateToBudgets(data) {
+  const { budgets, selectedBudgetKey } = getDefaultBudgetsAndSelection()
+  const hadCategories = data?.categories && Array.isArray(data.categories) && data.categories.length > 0
+  if (hadCategories) {
+    const categories = filterExcludedCategories(data.categories)
+    budgets[selectedBudgetKey] = { year: 2026, month: 2, categories }
+    const janKey = getBudgetKey(2026, 1)
+    budgets[janKey] = { year: 2026, month: 1, categories: deepCloneCategories(categories) }
+  }
+  const validKeys = new Set(getBudgetKeysFromCategories(budgets[selectedBudgetKey].categories).map((k) => k.key))
   const expenseSpent = {}
   const expenseOtherSpent = {}
   if (isPlainObject(data?.expenseSpent)) {
@@ -64,13 +84,28 @@ function migrateFromLegacy(data) {
   const defaultNotes = Object.fromEntries(EXPENSE_NOTES_CATEGORY_IDS.map((id) => [id, '']))
   const expenseNotes = { ...defaultNotes, ...(isPlainObject(data?.expenseNotes) ? data.expenseNotes : {}) }
   const otherPersonName = typeof data?.otherPersonName === 'string' ? data.otherPersonName : ''
-  return { categories, expenseSpent, expenseOtherSpent, expenseNotes, otherPersonName }
+  return { budgets, selectedBudgetKey, expenseSpent, expenseOtherSpent, expenseNotes, otherPersonName }
 }
 
 function mergeWithDefaults(data) {
-  if (data?.categories && Array.isArray(data.categories) && data.categories.length > 0) {
-    const categories = filterExcludedCategories(data.categories)
-    const validKeys = new Set(getBudgetKeysFromCategories(categories).map((k) => k.key))
+  if (data?.budgets && isPlainObject(data.budgets) && typeof data?.selectedBudgetKey === 'string') {
+    const budgets = { ...data.budgets }
+    const janKey = getBudgetKey(2026, 1)
+    const febKey = getBudgetKey(2026, 2)
+    const febBudget = budgets[febKey]
+    const janBudget = budgets[janKey]
+    if (febBudget && (!janBudget || !Array.isArray(janBudget.categories) || janBudget.categories.length === 0)) {
+      budgets[janKey] = {
+        year: 2026,
+        month: 1,
+        categories: deepCloneCategories(febBudget.categories),
+      }
+    }
+    const selectedBudgetKey = data.selectedBudgetKey
+    const categories = budgets[selectedBudgetKey]?.categories
+    const validKeys = categories
+      ? new Set(getBudgetKeysFromCategories(categories).map((k) => k.key))
+      : new Set()
     const expenseSpent = {}
     const expenseOtherSpent = {}
     if (isPlainObject(data.expenseSpent)) {
@@ -86,14 +121,15 @@ function mergeWithDefaults(data) {
     const defaultNotes = Object.fromEntries(EXPENSE_NOTES_CATEGORY_IDS.map((id) => [id, '']))
     const expenseNotes = { ...defaultNotes, ...(isPlainObject(data.expenseNotes) ? data.expenseNotes : {}) }
     return {
-      categories,
+      budgets,
+      selectedBudgetKey,
       expenseSpent,
       expenseOtherSpent,
       expenseNotes,
       otherPersonName: typeof data.otherPersonName === 'string' ? data.otherPersonName : '',
     }
   }
-  return migrateFromLegacy(data)
+  return migrateToBudgets(data)
 }
 
 function saveStored(data) {
@@ -124,9 +160,25 @@ export function AppDataProvider({ children }) {
     saveStored(state)
   }, [state])
 
-  const setSubCategoryBudget = useCallback((categoryId, subCategoryId, value) => {
+  const selectedBudgetKey = state.selectedBudgetKey
+  const categories = state.budgets[selectedBudgetKey]?.categories ?? []
+
+  const updateSelectedBudgetCategories = useCallback((updater) => {
     setState((prev) => {
-      const categories = prev.categories.map((cat) => {
+      const key = prev.selectedBudgetKey
+      const budget = prev.budgets[key]
+      if (!budget) return prev
+      const nextCategories = updater(budget.categories)
+      return {
+        ...prev,
+        budgets: { ...prev.budgets, [key]: { ...budget, categories: nextCategories } },
+      }
+    })
+  }, [])
+
+  const setSubCategoryBudget = useCallback((categoryId, subCategoryId, value) => {
+    updateSelectedBudgetCategories((cats) =>
+      cats.map((cat) => {
         if (cat.id !== categoryId) return cat
         return {
           ...cat,
@@ -135,29 +187,30 @@ export function AppDataProvider({ children }) {
           ),
         }
       })
-      return { ...prev, categories }
-    })
-  }, [])
+    )
+  }, [updateSelectedBudgetCategories])
 
   const addSubCategory = useCallback((categoryId, name) => {
     const trimmed = (name || '').trim()
     if (!trimmed) return
-    setState((prev) => {
-      const categories = prev.categories.map((cat) => {
+    updateSelectedBudgetCategories((cats) => {
+      return cats.map((cat) => {
         if (cat.id !== categoryId) return cat
         const names = new Set(cat.subCategories.map((s) => s.name.toLowerCase()))
         if (names.has(trimmed.toLowerCase())) return cat
         const newSub = { id: makeSubCategoryId(), name: trimmed, amount: 0 }
         return { ...cat, subCategories: [...cat.subCategories, newSub] }
       })
-      return { ...prev, categories }
     })
-  }, [])
+  }, [updateSelectedBudgetCategories])
 
   const removeSubCategory = useCallback((categoryId, subCategoryId) => {
     const key = `${categoryId}_${subCategoryId}`
     setState((prev) => {
-      const categories = prev.categories.map((cat) => {
+      const budgetKey = prev.selectedBudgetKey
+      const budget = prev.budgets[budgetKey]
+      if (!budget) return prev
+      const categories = budget.categories.map((cat) => {
         if (cat.id !== categoryId) return cat
         const next = cat.subCategories.filter((s) => s.id !== subCategoryId)
         if (next.length === 0) return cat
@@ -165,27 +218,28 @@ export function AppDataProvider({ children }) {
       })
       const { [key]: _s, ...expenseSpent } = prev.expenseSpent
       const { [key]: _o, ...expenseOtherSpent } = prev.expenseOtherSpent
-      return { ...prev, categories, expenseSpent, expenseOtherSpent }
+      return {
+        ...prev,
+        budgets: { ...prev.budgets, [budgetKey]: { ...budget, categories } },
+        expenseSpent,
+        expenseOtherSpent,
+      }
     })
   }, [])
 
   const setCategoryName = useCallback((categoryId, name) => {
     const trimmed = (name || '').trim()
     if (!trimmed) return
-    setState((prev) => ({
-      ...prev,
-      categories: prev.categories.map((cat) =>
-        cat.id !== categoryId ? cat : { ...cat, name: trimmed }
-      ),
-    }))
-  }, [])
+    updateSelectedBudgetCategories((cats) =>
+      cats.map((cat) => (cat.id !== categoryId ? cat : { ...cat, name: trimmed }))
+    )
+  }, [updateSelectedBudgetCategories])
 
   const setSubCategoryName = useCallback((categoryId, subCategoryId, name) => {
     const trimmed = (name || '').trim()
     if (!trimmed) return
-    setState((prev) => ({
-      ...prev,
-      categories: prev.categories.map((cat) => {
+    updateSelectedBudgetCategories((cats) =>
+      cats.map((cat) => {
         if (cat.id !== categoryId) return cat
         return {
           ...cat,
@@ -193,13 +247,16 @@ export function AppDataProvider({ children }) {
             sub.id !== subCategoryId ? sub : { ...sub, name: trimmed }
           ),
         }
-      }),
-    }))
-  }, [])
+      })
+    )
+  }, [updateSelectedBudgetCategories])
 
   const removeCategory = useCallback((categoryId) => {
     setState((prev) => {
-      const categories = prev.categories.filter((c) => c.id !== categoryId)
+      const budgetKey = prev.selectedBudgetKey
+      const budget = prev.budgets[budgetKey]
+      if (!budget) return prev
+      const categories = prev.budgets[budgetKey].categories.filter((c) => c.id !== categoryId)
       const prefix = `${categoryId}_`
       const expenseSpent = Object.fromEntries(
         Object.entries(prev.expenseSpent).filter(([k]) => !k.startsWith(prefix))
@@ -208,22 +265,107 @@ export function AppDataProvider({ children }) {
         Object.entries(prev.expenseOtherSpent).filter(([k]) => !k.startsWith(prefix))
       )
       const { [categoryId]: _, ...expenseNotes } = prev.expenseNotes
-      return { ...prev, categories, expenseSpent, expenseOtherSpent, expenseNotes }
+      return {
+        ...prev,
+        budgets: { ...prev.budgets, [budgetKey]: { ...budget, categories } },
+        expenseSpent,
+        expenseOtherSpent,
+        expenseNotes,
+      }
     })
   }, [])
 
   const addCategory = useCallback((name) => {
     const trimmed = (name || '').trim()
     if (!trimmed) return
+    updateSelectedBudgetCategories((cats) => [
+      ...cats,
+      { id: makeCategoryId(), name: trimmed, subCategories: [] },
+    ])
+  }, [updateSelectedBudgetCategories])
+
+  const setSelectedBudget = useCallback((key) => {
+    setState((prev) => (prev.selectedBudgetKey === key ? prev : { ...prev, selectedBudgetKey: key }))
+  }, [])
+
+  const addBudgetMonth = useCallback((year, month) => {
+    const key = getBudgetKey(year, month)
     setState((prev) => {
-      const newCategory = {
-        id: makeCategoryId(),
-        name: trimmed,
-        subCategories: [],
+      const candidates = Object.values(prev.budgets)
+        .filter((b) => compareYearMonth(b.year, b.month, year, month) < 0)
+        .sort((a, b) => compareYearMonth(b.year, b.month, a.year, a.month))
+      const mostRecent = candidates[0]
+      const categories = mostRecent
+        ? deepCloneCategories(mostRecent.categories)
+        : deepCloneCategories(filterExcludedCategories(getInitialCategories()))
+      const newBudget = { year, month, categories }
+      return {
+        ...prev,
+        budgets: { ...prev.budgets, [key]: newBudget },
+        selectedBudgetKey: key,
       }
-      return { ...prev, categories: [...prev.categories, newCategory] }
     })
   }, [])
+
+  const { year: currentYear, month: currentMonth } = getCurrentYearMonth()
+  const maxYear = currentYear + 1
+
+  const getYears = useCallback(() => {
+    const keys = Object.keys(state.budgets)
+    const fromBudgets = new Set(keys.map((k) => parseInt(k.split('-')[0], 10)))
+    return Array.from(fromBudgets).filter((y) => y <= maxYear).sort((a, b) => a - b)
+  }, [state.budgets, maxYear])
+
+  const getMonthsForYear = useCallback(
+    (year) => {
+      const keys = Object.keys(state.budgets).filter((k) => k.startsWith(`${year}-`))
+      return keys
+        .map((k) => parseInt(k.split('-')[1], 10))
+        .sort((a, b) => a - b)
+    },
+    [state.budgets]
+  )
+
+  const canAddYear = useCallback(() => {
+    const keys = Object.keys(state.budgets)
+    const years = keys.map((k) => parseInt(k.split('-')[0], 10))
+    const maxExisting = years.length ? Math.max(...years) : 0
+    return maxExisting < maxYear
+  }, [state.budgets, maxYear])
+
+  const getNextMonthToAdd = useCallback(
+    (year) => {
+      const existing = getMonthsForYear(year)
+      if (existing.length === 0) return 1
+      const maxMonth = Math.max(...existing)
+      if (maxMonth >= 12) return null
+      return maxMonth + 1
+    },
+    [getMonthsForYear]
+  )
+
+  const isPastMonth = useCallback(
+    (y, m) => {
+      if (y < currentYear) return true
+      if (y > currentYear) return false
+      return m < currentMonth
+    },
+    [currentYear, currentMonth]
+  )
+
+  const isCurrentMonth = useCallback(
+    (y, m) => y === currentYear && m === currentMonth,
+    [currentYear, currentMonth]
+  )
+
+  const isFutureMonth = useCallback(
+    (y, m) => {
+      if (y > currentYear) return true
+      if (y < currentYear) return false
+      return m > currentMonth
+    },
+    [currentYear, currentMonth]
+  )
 
   const setExpenseSpent = useCallback((key, value) => {
     setState((prev) => ({
@@ -252,7 +394,9 @@ export function AppDataProvider({ children }) {
 
   const value = useMemo(
     () => ({
-      categories: state.categories,
+      categories,
+      budgets: state.budgets,
+      selectedBudgetKey: state.selectedBudgetKey,
       expenseSpent: state.expenseSpent,
       expenseOtherSpent: state.expenseOtherSpent,
       expenseNotes: state.expenseNotes,
@@ -264,13 +408,26 @@ export function AppDataProvider({ children }) {
       setSubCategoryName,
       removeCategory,
       addCategory,
+      setSelectedBudget,
+      addBudgetMonth,
+      getYears,
+      getMonthsForYear,
+      canAddYear,
+      getNextMonthToAdd,
+      isPastMonth,
+      isCurrentMonth,
+      isFutureMonth,
+      getCurrentYearMonth,
+      maxYear,
       setExpenseSpent,
       setExpenseOtherSpent,
       setExpenseNote,
       setOtherPersonName,
     }),
     [
-      state.categories,
+      categories,
+      state.budgets,
+      state.selectedBudgetKey,
       state.expenseSpent,
       state.expenseOtherSpent,
       state.expenseNotes,
@@ -282,6 +439,16 @@ export function AppDataProvider({ children }) {
       setSubCategoryName,
       removeCategory,
       addCategory,
+      setSelectedBudget,
+      addBudgetMonth,
+      getYears,
+      getMonthsForYear,
+      canAddYear,
+      getNextMonthToAdd,
+      isPastMonth,
+      isCurrentMonth,
+      isFutureMonth,
+      maxYear,
       setExpenseSpent,
       setExpenseOtherSpent,
       setExpenseNote,
