@@ -246,7 +246,10 @@ export default function Budget() {
     removeCategory,
     addCategory,
     setSelectedBudget,
+    setBudgetGrossIncome,
+    setBudgetNetIncome,
     addBudgetMonth,
+    removeBudgetMonth,
     getYears,
     getMonthsForYear,
     getNextMonthToAdd,
@@ -260,6 +263,7 @@ export default function Budget() {
   const [expanded, setExpanded] = useState({})
   const [addingForId, setAddingForId] = useState(null)
   const [addingNewCategory, setAddingNewCategory] = useState(false)
+  const [deleteConfirmKey, setDeleteConfirmKey] = useState(null)
 
   // Initialize viewYear from selected budget or current date
   const [viewYear, setViewYear] = useState(() => {
@@ -285,6 +289,18 @@ export default function Budget() {
       !(selectedYear === 2026 && selectedMonth === 1)
     : false
 
+  const totalMonthly = categories.reduce(
+    (sum, cat) => sum + getCategoryBudget(cat),
+    0
+  )
+
+  const grossIncome = selectedBudget?.grossIncome ?? 0
+  const netIncome = selectedBudget?.netIncome ?? 0
+  const hasNetIncome = netIncome > 0
+  const percentBudgeted = hasNetIncome ? Math.round((totalMonthly / netIncome) * 100) : null
+  const remainingIncome = hasNetIncome ? netIncome - totalMonthly : null
+  const isOverBudget = hasNetIncome && totalMonthly > netIncome
+
   const toggle = useCallback((id) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
   }, [])
@@ -297,11 +313,6 @@ export default function Budget() {
       setExpanded(Object.fromEntries(categories.map((c) => [c.id, true])))
     }
   }, [allExpanded, categories])
-
-  const totalMonthly = categories.reduce(
-    (sum, cat) => sum + getCategoryBudget(cat),
-    0
-  )
 
   const handleAddSubCategory = useCallback(
     (categoryId, name) => {
@@ -385,7 +396,8 @@ export default function Budget() {
             const isPast = isPastMonth(viewYear, m)
             const isCurrent = isCurrentMonth(viewYear, m)
             const isFuture = isFutureMonth(viewYear, m)
-            
+            const canDelete = isFuture
+
             let btnClass = styles.monthBtn
             if (isSelected) btnClass += ` ${styles.monthBtnSelected}`
             else if (isPast) btnClass += ` ${styles.monthBtnPast}`
@@ -393,14 +405,29 @@ export default function Budget() {
             else if (isFuture) btnClass += ` ${styles.monthBtnFuture}`
 
             return (
-              <button
-                key={key}
-                type="button"
-                className={btnClass}
-                onClick={() => setSelectedBudget(key)}
-              >
-                {MONTH_NAMES[m - 1]}
-              </button>
+              <div key={key} className={styles.monthCell}>
+                <button
+                  type="button"
+                  className={btnClass}
+                  onClick={() => setSelectedBudget(key)}
+                >
+                  {MONTH_NAMES[m - 1]}
+                </button>
+                {canDelete && (
+                  <button
+                    type="button"
+                    className={styles.monthDeleteBtn}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeleteConfirmKey(key)
+                    }}
+                    aria-label={`Delete ${MONTH_NAMES[m - 1]} ${viewYear}`}
+                    title={`Delete ${MONTH_NAMES[m - 1]} ${viewYear}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             )
           })}
           {canAdd && (
@@ -418,6 +445,62 @@ export default function Budget() {
       {/* Selected month budget */}
       {selectedBudgetKey && (
         <>
+          {/* Income & Budget Summary */}
+          <section className={styles.incomeSummarySection}>
+            <h2 className={styles.incomeSummaryTitle}>Income & Budget Summary</h2>
+            <div className={styles.incomeSummaryGrid}>
+              <div className={styles.incomeSummaryRow}>
+                <label className={styles.incomeSummaryLabel} htmlFor="budget-gross-income">
+                  Gross Monthly Income <span className={styles.optional}>(optional)</span>
+                </label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.currency}>$</span>
+                  <DecimalInput
+                    id="budget-gross-income"
+                    className={styles.input}
+                    value={grossIncome}
+                    onChange={setBudgetGrossIncome}
+                    readOnly={isReadOnly}
+                  />
+                </div>
+              </div>
+              <div className={styles.incomeSummaryRow}>
+                <label className={styles.incomeSummaryLabel} htmlFor="budget-net-income">
+                  Net Monthly Income
+                </label>
+                <div className={styles.inputWrap}>
+                  <span className={styles.currency}>$</span>
+                  <DecimalInput
+                    id="budget-net-income"
+                    className={styles.input}
+                    value={netIncome}
+                    onChange={setBudgetNetIncome}
+                    readOnly={isReadOnly}
+                  />
+                </div>
+              </div>
+              <div className={styles.incomeSummaryRow}>
+                <span className={styles.incomeSummaryLabel}>Total budget</span>
+                <span className={`${styles.incomeSummaryValue} mono`}>${fmt(totalMonthly)}</span>
+              </div>
+              <div className={styles.incomeSummaryRow}>
+                <span className={styles.incomeSummaryLabel}>% of income budgeted</span>
+                <span className={`${styles.incomeSummaryValue} mono ${isOverBudget ? styles.overBudget : ''}`}>
+                  {hasNetIncome ? `${percentBudgeted}%` : '—'}
+                </span>
+              </div>
+              <div className={styles.incomeSummaryRow}>
+                <span className={styles.incomeSummaryLabel}>Remaining income</span>
+                <span className={`${styles.incomeSummaryValue} mono ${isOverBudget ? styles.overBudget : ''}`}>
+                  {hasNetIncome ? `$${fmt(remainingIncome)}` : '—'}
+                </span>
+              </div>
+            </div>
+            {isReadOnly && (
+              <span className={styles.readOnlyBadge}>Read-only</span>
+            )}
+          </section>
+
           <section className={styles.totalSection}>
             <div className={styles.totalCard}>
               <span className={styles.totalLabel}>
@@ -598,6 +681,45 @@ export default function Budget() {
 
       {!selectedBudgetKey && (
         <p className={styles.selectMonthHint}>Select a month above to view or edit its budget.</p>
+      )}
+
+      {/* Delete month confirmation modal */}
+      {deleteConfirmKey && budgets[deleteConfirmKey] && (
+        <div className={styles.modalBackdrop} onClick={() => setDeleteConfirmKey(null)}>
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="delete-month-title"
+            aria-modal="true"
+          >
+            <h2 id="delete-month-title" className={styles.modalTitle}>
+              Delete {MONTH_NAMES[budgets[deleteConfirmKey].month - 1]} {budgets[deleteConfirmKey].year}?
+            </h2>
+            <p className={styles.modalText}>
+              This will remove the budget for this month. You can add it again later if needed.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelBtn}
+                onClick={() => setDeleteConfirmKey(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.modalConfirmBtn}
+                onClick={() => {
+                  removeBudgetMonth(deleteConfirmKey)
+                  setDeleteConfirmKey(null)
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

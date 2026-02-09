@@ -47,8 +47,8 @@ function getDefaultBudgetsAndSelection() {
   const janKey = getBudgetKey(2026, 1)
   const febKey = getBudgetKey(2026, 2)
   const budgets = {
-    [janKey]: { year: 2026, month: 1, categories: deepCloneCategories(initialCategories) },
-    [febKey]: { year: 2026, month: 2, categories: deepCloneCategories(initialCategories) },
+    [janKey]: { year: 2026, month: 1, categories: deepCloneCategories(initialCategories), grossIncome: 0, netIncome: 0 },
+    [febKey]: { year: 2026, month: 2, categories: deepCloneCategories(initialCategories), grossIncome: 0, netIncome: 0 },
   }
   return { budgets, selectedBudgetKey: febKey }
 }
@@ -64,9 +64,9 @@ function migrateToBudgets(data) {
   const hadCategories = data?.categories && Array.isArray(data.categories) && data.categories.length > 0
   if (hadCategories) {
     const categories = filterExcludedCategories(data.categories)
-    budgets[selectedBudgetKey] = { year: 2026, month: 2, categories }
+    budgets[selectedBudgetKey] = { year: 2026, month: 2, categories, grossIncome: 0, netIncome: 0 }
     const janKey = getBudgetKey(2026, 1)
-    budgets[janKey] = { year: 2026, month: 1, categories: deepCloneCategories(categories) }
+    budgets[janKey] = { year: 2026, month: 1, categories: deepCloneCategories(categories), grossIncome: 0, netIncome: 0 }
   }
   const validKeys = new Set(getBudgetKeysFromCategories(budgets[selectedBudgetKey].categories).map((k) => k.key))
   const expenseSpent = {}
@@ -99,6 +99,8 @@ function mergeWithDefaults(data) {
         year: 2026,
         month: 1,
         categories: deepCloneCategories(febBudget.categories),
+        grossIncome: febBudget.grossIncome ?? 0,
+        netIncome: febBudget.netIncome ?? 0,
       }
     }
     const selectedBudgetKey = data.selectedBudgetKey
@@ -288,6 +290,34 @@ export function AppDataProvider({ children }) {
     setState((prev) => (prev.selectedBudgetKey === key ? prev : { ...prev, selectedBudgetKey: key }))
   }, [])
 
+  const setBudgetGrossIncome = useCallback((value) => {
+    setState((prev) => {
+      const key = prev.selectedBudgetKey
+      const budget = prev.budgets[key]
+      if (!budget) return prev
+      const num = Number(value)
+      const grossIncome = Number.isFinite(num) && num >= 0 ? num : 0
+      return {
+        ...prev,
+        budgets: { ...prev.budgets, [key]: { ...budget, grossIncome } },
+      }
+    })
+  }, [])
+
+  const setBudgetNetIncome = useCallback((value) => {
+    setState((prev) => {
+      const key = prev.selectedBudgetKey
+      const budget = prev.budgets[key]
+      if (!budget) return prev
+      const num = Number(value)
+      const netIncome = Number.isFinite(num) && num >= 0 ? num : 0
+      return {
+        ...prev,
+        budgets: { ...prev.budgets, [key]: { ...budget, netIncome } },
+      }
+    })
+  }, [])
+
   const addBudgetMonth = useCallback((year, month) => {
     const key = getBudgetKey(year, month)
     setState((prev) => {
@@ -298,11 +328,33 @@ export function AppDataProvider({ children }) {
       const categories = mostRecent
         ? deepCloneCategories(mostRecent.categories)
         : deepCloneCategories(filterExcludedCategories(getInitialCategories()))
-      const newBudget = { year, month, categories }
+      const grossIncome = mostRecent?.grossIncome ?? 0
+      const netIncome = mostRecent?.netIncome ?? 0
+      const newBudget = { year, month, categories, grossIncome, netIncome }
       return {
         ...prev,
         budgets: { ...prev.budgets, [key]: newBudget },
         selectedBudgetKey: key,
+      }
+    })
+  }, [])
+
+  const removeBudgetMonth = useCallback((key) => {
+    setState((prev) => {
+      if (!prev.budgets[key]) return prev
+      const nextBudgets = { ...prev.budgets }
+      delete nextBudgets[key]
+      let nextSelected = prev.selectedBudgetKey
+      if (prev.selectedBudgetKey === key) {
+        const remaining = Object.keys(nextBudgets)
+          .map((k) => ({ key: k, year: nextBudgets[k].year, month: nextBudgets[k].month }))
+          .sort((a, b) => compareYearMonth(a.year, a.month, b.year, b.month))
+        nextSelected = remaining.length > 0 ? remaining[remaining.length - 1].key : null
+      }
+      return {
+        ...prev,
+        budgets: nextBudgets,
+        selectedBudgetKey: nextSelected,
       }
     })
   }, [])
@@ -409,7 +461,10 @@ export function AppDataProvider({ children }) {
       removeCategory,
       addCategory,
       setSelectedBudget,
+      setBudgetGrossIncome,
+      setBudgetNetIncome,
       addBudgetMonth,
+      removeBudgetMonth,
       getYears,
       getMonthsForYear,
       canAddYear,
@@ -440,7 +495,10 @@ export function AppDataProvider({ children }) {
       removeCategory,
       addCategory,
       setSelectedBudget,
+      setBudgetGrossIncome,
+      setBudgetNetIncome,
       addBudgetMonth,
+      removeBudgetMonth,
       getYears,
       getMonthsForYear,
       canAddYear,
